@@ -18,6 +18,8 @@ trait DynamoObject[T]{
   def fromDynamo(attributes: Map[String, AttributeValue]) : T
   def table(prefix: String): String = prefix + table
   def keyName: String = "id"
+  def keyType: String = "S"
+  def keyRange: Boolean = false
 }
 
 case class Save[T : DynamoObject](o : T) extends DbOperation[T]{
