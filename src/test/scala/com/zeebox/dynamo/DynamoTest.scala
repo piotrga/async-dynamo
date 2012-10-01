@@ -2,7 +2,6 @@ package com.zeebox.dynamo
 
 import org.scalatest.matchers.MustMatchers
 import org.scalatest.{BeforeAndAfterAll, FreeSpec}
-import akka.actor.Actor
 import com.amazonaws.services.dynamodb.model.AttributeValue
 import java.util.UUID
 
@@ -24,30 +23,42 @@ object DynamoTestDataObjects{
 }
 
 class DynamoTest extends FreeSpec with MustMatchers with BeforeAndAfterAll{
-  implicit val dynamo = Dynamo(DynamoConfig(System.getProperty("amazon.accessKey"), System.getProperty("amazon.secret"), "devng_", "https://dynamodb.eu-west-1.amazonaws.com"), 3)
+  implicit val dynamo = Dynamo(DynamoConfig(System.getProperty("amazon.accessKey"), System.getProperty("amazon.secret"), "devng_", System.getProperty("dynamo.url", "https://dynamodb.eu-west-1.amazonaws.com")), 3)
   import DynamoTestDataObjects._
 
 
   "Save/Get" in {
-    val obj = DynamoTestObject(UUID.randomUUID().toString, "some test value" + math.random)
-    (dynamo ? Save(obj)).get
-
-    val saved = Read[DynamoTestObject](obj.id).blockingExecute.get
-    assert (saved === obj)
+    assertCanSaveGetObject()
   }
+
+
 
   "Get returns None if record not found" in {
     assert( Read[DynamoTestObject](UUID.randomUUID().toString).blockingExecute === None )
   }
 
-  "What happens if reading from non-existent table" in {
+  "Reading from non-existent table causes ThirdPartyException" in {
     intercept[ThirdPartyException]{
       Read[Broken](UUID.randomUUID().toString).blockingExecute
     }.getMessage must include("resource not found")
   }
 
+  "Client survives 100 parallel errors" in {
+    (1 to 100).par.foreach{ i =>
+      intercept[ThirdPartyException]{
+        Read[Broken](UUID.randomUUID().toString).blockingExecute
+      }
+    }
+    assertCanSaveGetObject()
+  }
 
+  private def assertCanSaveGetObject() {
+    val obj = DynamoTestObject(UUID.randomUUID().toString, "some test value" + math.random)
+    (dynamo ? Save(obj)).get
 
+    val saved = Read[DynamoTestObject](obj.id).blockingExecute.get
+    assert(saved === obj)
+  }
 
   override protected def beforeAll() {
     super.beforeAll()
