@@ -4,7 +4,7 @@ organization := "com.zeebox"
 
 name := "async-dynamo"
 
-version := "0.10.0-SNAPSHOT"
+version := "0.11.0"
 
 scalaVersion := "2.9.1"
 

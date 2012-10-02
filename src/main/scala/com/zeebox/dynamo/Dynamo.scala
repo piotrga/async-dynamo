@@ -13,7 +13,13 @@ class Dynamo(config: DynamoConfig) extends Actor {
   db.setEndpoint(config.endpointUrl)
 
   def receive = {
-    case op:DbOperation[_] => self.tryReply(try op.execute(db, config.tablePrefix) catch {case e:Throwable => throw new ThirdPartyException("AmazonDB Error: [%s] while executing [%s]" format (e.getMessage, op), e)})
+    case op:DbOperation[_] => self.tryReply(
+      try
+        op.execute(db, config.tablePrefix)
+      catch {
+        case e:Throwable => throw new ThirdPartyException("AmazonDB Error: [%s] while executing [%s]" format (e.getMessage, op), e)
+      }
+    )
   }
 }
 
@@ -27,11 +33,11 @@ case class DynamoConfig(
 trait DbOperation[T]{
   private[dynamo] def execute(db: AmazonDynamoDBClient, tablePrefix:String):T
 
-  def blockingExecute(implicit dynamo: ActorRef, timeout:Duration = 5 seconds): T = {
+  def blockingExecute(implicit dynamo: ActorRef, timeout:Duration): T = {
     executeOn(dynamo).get
   }
 
-  def executeOn(dynamo: ActorRef)(implicit timeout:Duration = 5 seconds): Future[T] = {
+  def executeOn(dynamo: ActorRef)(implicit timeout:Duration): Future[T] = {
     dynamo ask(this, timeout.toMillis) map(_.asInstanceOf[T])
   }
 }
