@@ -25,6 +25,7 @@ object DynamoTestDataObjects{
 
 class DynamoTest extends FreeSpec with MustMatchers with BeforeAndAfterAll{
   implicit val dynamo = Dynamo(DynamoConfig(System.getProperty("amazon.accessKey"), System.getProperty("amazon.secret"), "devng_", System.getProperty("dynamo.url", "https://dynamodb.eu-west-1.amazonaws.com")), 3)
+  implicit val timeout = 10 seconds
   import DynamoTestDataObjects._
 
 

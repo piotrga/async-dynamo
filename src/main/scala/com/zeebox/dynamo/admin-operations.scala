@@ -54,7 +54,7 @@ case class IsTableActive[T](implicit dyn: DynamoObject[T]) extends DbOperation[B
     def schedule() {
       Scheduler.scheduleOnce(() => {
         if (!promise.isExpired) {
-          this.executeOn(dynamo).map{ active =>
+          this.executeOn(dynamo)(timeout).map{ active =>
             if (active) promise.completeWithResult(true)
             else schedule()
           }.recover{case e => promise.completeWithException(e) }
