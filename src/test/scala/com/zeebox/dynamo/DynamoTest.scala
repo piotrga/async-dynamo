@@ -33,8 +33,6 @@ class DynamoTest extends FreeSpec with MustMatchers with BeforeAndAfterAll{
     assertCanSaveGetObject()
   }
 
-
-
   "Get returns None if record not found" in {
     assert( Read[DynamoTestObject](UUID.randomUUID().toString).blockingExecute === None )
   }
@@ -54,6 +52,14 @@ class DynamoTest extends FreeSpec with MustMatchers with BeforeAndAfterAll{
     assertCanSaveGetObject()
   }
 
+  "Delete" in {
+    val obj = DynamoTestObject(UUID.randomUUID().toString, "some test value" + math.random)
+    (dynamo ? Save(obj)).get
+    DeleteById[DynamoTestObject](obj.id).blockingExecute
+
+    Read[DynamoTestObject](obj.id).blockingExecute must be ('empty)
+  }
+
   private def assertCanSaveGetObject() {
     val obj = DynamoTestObject(UUID.randomUUID().toString, "some test value" + math.random)
     (dynamo ? Save(obj)).get
@@ -65,7 +71,7 @@ class DynamoTest extends FreeSpec with MustMatchers with BeforeAndAfterAll{
   override protected def beforeAll() {
     super.beforeAll()
     dynamo.start()
-    CreateTable[DynamoTestObject]().blockingExecute(dynamo, 30 seconds)
+    CreateTable[DynamoTestObject]().blockingExecute(dynamo,1 minute)
   }
 
   override protected def afterAll() {

@@ -56,3 +56,9 @@ case class DeleteAll[T](implicit dyn:DynamoObject[T]) extends DbOperation[Int]{
     res.getCount
   }
 }
+
+case class DeleteById[T](id: String)(implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
+  def execute(db: AmazonDynamoDBClient, tablePrefix:String){
+    db.deleteItem( new DeleteItemRequest().withTableName(dyn.table(tablePrefix)).withKey(new Key().withHashKeyElement(new AttributeValue(id))))
+  }
+}
