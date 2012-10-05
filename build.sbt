@@ -1,5 +1,3 @@
-import sbt.Package.ManifestAttributes
-
 organization := "com.zeebox"
 
 name := "async-dynamo"

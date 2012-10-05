@@ -1,8 +1,10 @@
-// RELEASE PLUGIN
 import sbtrelease._
 
 import sbtrelease.ReleasePlugin.ReleaseKeys._
 
+import sbt.Package.ManifestAttributes
+
+// RELEASE PLUGIN
 releaseSettings
 
 nextVersion := { ver => Version(ver).map(_.bumpBugfix.asSnapshot.string).getOrElse(versionFormatError) }
@@ -22,10 +24,10 @@ packageOptions <<= (Keys.version, Keys.name, Keys.artifact) map {
   (version: String, name: String, artifact: Artifact) =>
     Seq(ManifestAttributes(
       "Implementation-Vendor" -> "Zeebox",
-      "Implementation-Title" -> name,
+      //"Implementation-Title" -> name,
       "Version" -> version,
       "Build-Number" -> Option(System.getenv("GO_PIPELINE_COUNTER")).getOrElse("NOT_GO_BUILD"),
-      "Group-Id" -> organization,
+      //"Group-Id" -> organization,
       "Artifact-Id" -> artifact.name,
       "Git-SHA1" -> Git.hash,
       "Git-Branch" -> Git.branch,
