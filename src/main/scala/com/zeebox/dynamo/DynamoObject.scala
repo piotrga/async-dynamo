@@ -30,6 +30,10 @@ object DynamoObject {
   def of2[T <: Product :ClassManifest](construct : (String, String) => T) = apply((args : Seq[String]) => construct(args(0), args(1)))
   def of3[T <: Product :ClassManifest](construct : (String, String, String) => T) = apply((args : Seq[String]) => construct(args(0), args(1), args(2)))
   def of4[T <: Product :ClassManifest](construct : (String, String, String, String) => T) = apply((args : Seq[String]) => construct(args(0), args(1), args(2), args(3)))
+  def of5[T <: Product :ClassManifest](construct : (String, String, String, String, String) => T) = apply((args : Seq[String]) => construct(args(0), args(1), args(2), args(3), args(4)))
+  def of6[T <: Product :ClassManifest](construct : (String, String, String, String, String, String) => T) = apply((args : Seq[String]) => construct(args(0), args(1), args(2), args(3), args(4), args(5)))
+  def of7[T <: Product :ClassManifest](construct : (String, String, String, String, String, String, String) => T) = apply((args : Seq[String]) => construct(args(0), args(1), args(2), args(3), args(4), args(5), args(6)))
+  def of8[T <: Product :ClassManifest](construct : (String, String, String, String, String, String, String, String) => T) = apply((args : Seq[String]) => construct(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7)))
 
   def apply[T <: Product :ClassManifest]( construct : Seq[String] => T) : DynamoObject[T] = {
     lazy val names = extractFieldNames(classManifest[T])
