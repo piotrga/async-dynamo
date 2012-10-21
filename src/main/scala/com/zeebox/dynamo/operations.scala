@@ -10,17 +10,7 @@ import com.amazonaws.services.dynamodb.model.DeleteItemRequest
 import com.amazonaws.services.dynamodb.model.Key
 
 
-trait DynamoObject[T]{
-  protected implicit def toAttribute(value : String) = new AttributeValue().withS(value)
 
-  protected def table : String
-  def toDynamo(t:T) : Map[String, AttributeValue]
-  def fromDynamo(attributes: Map[String, AttributeValue]) : T
-  def table(prefix: String): String = prefix + table
-  def keyName: String = "id"
-  def keyType: String = "S"
-  def keyRange: Boolean = false
-}
 
 case class Save[T : DynamoObject](o : T) extends DbOperation[T]{
   def execute(db: AmazonDynamoDBClient, tablePrefix:String) : T = {
@@ -62,3 +52,6 @@ case class DeleteById[T](id: String)(implicit dyn:DynamoObject[T]) extends DbOpe
     db.deleteItem( new DeleteItemRequest().withTableName(dyn.table(tablePrefix)).withKey(new Key().withHashKeyElement(new AttributeValue(id))))
   }
 }
+
+
+
