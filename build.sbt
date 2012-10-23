@@ -12,7 +12,7 @@ resolvers ++= Seq(
 // Libraries
 libraryDependencies ++= Seq(
     "com.amazonaws" % "aws-java-sdk" % "1.3.5",
-    "se.scalablesolutions.akka" % "akka-actor" % "1.3"
+    "com.typesafe.akka" % "akka-actor" % "2.0"
 )
 
 // Test libraries
