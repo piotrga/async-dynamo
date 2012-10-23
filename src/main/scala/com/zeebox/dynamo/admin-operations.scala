@@ -27,7 +27,7 @@ case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(imp
       .withTableName(dyn.table(tablePrefix))
       .withKeySchema(ks)
       .withProvisionedThroughput(provisionedThroughput)
-
+//    println("Creating Dynamo table [%s]" format dyn.table(tablePrefix))
     db.createTable(request)
   }
 
@@ -37,6 +37,15 @@ case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(imp
     }.get
   }
 
+
+
+}
+
+case class TableExists[T](implicit dyn: DynamoObject[T]) extends DbOperation[Boolean]{
+  private[dynamo] def execute(db: AmazonDynamoDBClient, tablePrefix: String) = {
+    val tableName = dyn.table(tablePrefix)
+    db.listTables().getTableNames.contains(tableName)
+  }
 }
 
 case class IsTableActive[T](implicit dyn: DynamoObject[T]) extends DbOperation[Boolean]{

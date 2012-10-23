@@ -12,8 +12,7 @@ object DynamoTestDataObjects{
   implicit object DynamoTestDO extends DynamoObject[DynamoTestObject]{
     def toDynamo(t: DynamoTestObject) = Map("id"->t.id, "someValue"->t.someValue)
     def fromDynamo(a: Map[String, AttributeValue]) = DynamoTestObject(a("id").getS, a("someValue").getS)
-    protected val table = "dynamotest_"+util.Random.alphanumeric.filter(_.isLetter).take(10).mkString
-  }
+    protected val table = "%s_dynamotest" format Option(System.getenv("USER")).getOrElse("unknown") }
 
   case class Broken(id:String)
   implicit object BrokenDO extends DynamoObject[Broken]{
@@ -23,11 +22,8 @@ object DynamoTestDataObjects{
   }
 }
 
-class DynamoTest extends FreeSpec with MustMatchers with BeforeAndAfterAll{
-  implicit val dynamo = Dynamo(DynamoConfig(System.getProperty("amazon.accessKey"), System.getProperty("amazon.secret"), "devng_", System.getProperty("dynamo.url", "https://dynamodb.eu-west-1.amazonaws.com")), 3)
-  implicit val timeout = 10 seconds
+class DynamoTest extends FreeSpec with MustMatchers with DynamoTestObjectSupport{
   import DynamoTestDataObjects._
-
 
   "Save/Get" in {
     assertCanSaveGetObject()
@@ -68,16 +64,5 @@ class DynamoTest extends FreeSpec with MustMatchers with BeforeAndAfterAll{
     assert(saved === obj)
   }
 
-  override protected def beforeAll() {
-    super.beforeAll()
-    dynamo.start()
-    CreateTable[DynamoTestObject]().blockingExecute(dynamo,1 minute)
-  }
-
-  override protected def afterAll() {
-    super.afterAll()
-    DeleteTable[DynamoTestObject].blockingExecute
-    dynamo.stop()
-  }
 }
 

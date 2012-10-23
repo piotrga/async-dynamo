@@ -1,12 +1,9 @@
 package com.zeebox.dynamo
 
-import akka.actor.{ActorRef, Actor}
+import akka.actor.Actor
 import com.amazonaws.services.dynamodb.AmazonDynamoDBClient
 import com.amazonaws.auth.BasicAWSCredentials
-import akka.dispatch.Future
 import com.zeebox.akka.Routers
-import akka.util.Duration
-import akka.util.duration._
 
 class Dynamo(config: DynamoConfig) extends Actor {
   val db = new AmazonDynamoDBClient(new BasicAWSCredentials(config.accessKey, config.secret))
@@ -23,27 +20,6 @@ class Dynamo(config: DynamoConfig) extends Actor {
   }
 }
 
-case class DynamoConfig(
-                         accessKey : String,
-                         secret: String,
-                         tablePrefix: String,
-                         endpointUrl: String
-                         )
-
-trait DbOperation[T]{
-  private[dynamo] def execute(db: AmazonDynamoDBClient, tablePrefix:String):T
-
-  def blockingExecute(implicit dynamo: ActorRef, timeout:Duration): T = {
-    executeOn(dynamo).get
-  }
-
-  def executeOn(dynamo: ActorRef)(implicit timeout:Duration): Future[T] = {
-    dynamo ask(this, timeout.toMillis) map(_.asInstanceOf[T])
-  }
-}
-
-class ThirdPartyException(msg: String, cause:Throwable) extends RuntimeException(msg, cause)
-
 object Dynamo{
   def apply(config: DynamoConfig, connectionCount: Int) = {
     val dynamo = Routers.cyclicIteratorLoadBalancer(connectionCount, new Dynamo(config), (_,_)=>())
@@ -51,3 +27,14 @@ object Dynamo{
     dynamo
   }
 }
+case class DynamoConfig(
+                         accessKey : String,
+                         secret: String,
+                         tablePrefix: String,
+                         endpointUrl: String
+                         )
+
+
+
+class ThirdPartyException(msg: String, cause:Throwable) extends RuntimeException(msg, cause)
+
