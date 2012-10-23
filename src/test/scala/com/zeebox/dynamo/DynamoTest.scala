@@ -5,6 +5,7 @@ import org.scalatest.{BeforeAndAfterAll, FreeSpec}
 import com.amazonaws.services.dynamodb.model.AttributeValue
 import java.util.UUID
 import akka.util.duration._
+import akka.pattern.ask
 
 object DynamoTestDataObjects{
   case class DynamoTestObject(id:String, someValue:String)
@@ -50,7 +51,7 @@ class DynamoTest extends FreeSpec with MustMatchers with DynamoTestObjectSupport
 
   "Delete" in {
     val obj = DynamoTestObject(UUID.randomUUID().toString, "some test value" + math.random)
-    (dynamo ? Save(obj)).get
+    Save(obj).blockingExecute
     DeleteById[DynamoTestObject](obj.id).blockingExecute
 
     Read[DynamoTestObject](obj.id).blockingExecute must be ('empty)
@@ -58,7 +59,7 @@ class DynamoTest extends FreeSpec with MustMatchers with DynamoTestObjectSupport
 
   private def assertCanSaveGetObject() {
     val obj = DynamoTestObject(UUID.randomUUID().toString, "some test value" + math.random)
-    (dynamo ? Save(obj)).get
+    Save(obj).blockingExecute
 
     val saved = Read[DynamoTestObject](obj.id).blockingExecute.get
     assert(saved === obj)

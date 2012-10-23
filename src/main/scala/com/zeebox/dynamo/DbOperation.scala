@@ -1,10 +1,10 @@
 package com.zeebox.dynamo
 
-import com.zeebox.functional.ReaderMonad
 import com.amazonaws.services.dynamodb.AmazonDynamoDBClient
 import akka.actor.ActorRef
-import akka.util.Duration
-import akka.dispatch.Future
+import akka.util.{Timeout, Duration}
+import akka.dispatch.{Await, Future}
+import akka.pattern.ask
 
 trait DbOperation[T]{ self =>
   def map[B](g: T => B): DbOperation[B] = (db: AmazonDynamoDBClient, tablePrefix:String) => g(execute(db, tablePrefix))
@@ -13,11 +13,11 @@ trait DbOperation[T]{ self =>
   private[dynamo] def execute(db: AmazonDynamoDBClient, tablePrefix:String):T
 
   def blockingExecute(implicit dynamo: ActorRef, timeout:Duration): T = {
-    executeOn(dynamo).get
+    Await.result(executeOn(dynamo)(Timeout(timeout)), timeout)
   }
 
-  def executeOn(dynamo: ActorRef)(implicit timeout:Duration): Future[T] = {
-    dynamo ask(this, timeout.toMillis) map(_.asInstanceOf[T])
+  def executeOn(dynamo: ActorRef)(implicit timeout:Timeout): Future[T] = {
+    dynamo.ask(this).map(_.asInstanceOf[T])
   }
 }
 
