@@ -15,24 +15,24 @@ First let's start Dynamo client:
     ),
     connectionCount = 3)
 
-Now let's create a Person case class and tell Dynamo how to save it
+Now let's create a Person case class and tell Dynamo how to save it:
 
     case class Person(id :String, name: String, email: String)
     implicit val personDO = DynamoObject.of3(Person) // make Person dynamo-enabled
 
-Let's create a table in Dynamo
+Let's create a table in Dynamo:
 
     if (! TableExists[Person]()) //implicit kicks in to convert DbOperation[T] to T
-      CreateTable[Person](5,5).blockingExecute(dynamo, 1 minute) // this is long so explicit blocking call
+      CreateTable[Person](5,5).blockingExecute(dynamo, 1 minute) // explicit blocking call to set custom timeout
 
-And finally let's do some Dynamo operations
+And finally let's do some Dynamo operations:
 
      val julian = Person("123", "Julian", "julian@gmail.com")
      val saved : Option[Person] = Save(julian) andThen Read[Person](julian.id) // implicit automatically executes and blocks for convenience
      assert(saved == Some(julian))
 
 Here is a full example:
-
+```scala
     package com.zeebox
 
     import com.zeebox.dynamo._
@@ -64,7 +64,7 @@ Here is a full example:
         assert(saved == Some(julian))
       } finally dynamo ! 'stop
     }
-
+```
 
 Information for developers
 ==========================
@@ -72,15 +72,18 @@ Information for developers
 Building
 --------
 This library is build with SBT:
+
      sbt clean test
 
 IntelliJ and SBT
 ----------------
 Generating IntelliJ project files:
+
     sbt gen-idea
 
 _IMPORTANT: You need to run sbt gen-idea every time you change the dependencies._
 If you want to refresh the snapshot dependencies (WHICH I TRY TO AVOID) run:
+
     sbt clean update
 Click on Synchronize icon in IntelliJ - it should pick it up.
 
@@ -104,6 +107,7 @@ It is much easier to apply this policy to the library.
 
 In order to release a new version:
  - run
+
     sbt release
  - confirm or amend the release version
  - confirm next development version
