@@ -1,11 +1,12 @@
-package com.zeebox.dynamo
+package com.zeebox.dynamo.nonblocking
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDBClient
 import com.amazonaws.services.dynamodb.model._
 import akka.dispatch.{Await, Future, Promise}
 import akka.actor.{ActorSystem, ActorRef, Scheduler, Actor}
-import akka.util.Duration
+import akka.util.{Timeout, Duration}
 import akka.util.duration._
+import com.zeebox.dynamo._
 
 case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
   def execute(db: AmazonDynamoDBClient, tablePrefix:String) {
@@ -27,14 +28,13 @@ case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(imp
       .withTableName(dyn.table(tablePrefix))
       .withKeySchema(ks)
       .withProvisionedThroughput(provisionedThroughput)
-    //    println("Creating Dynamo table [%s]" format dyn.table(tablePrefix))
     db.createTable(request)
   }
 
-  override def blockingExecute(implicit dynamo: ActorRef, timeout: Duration) {
+  override def blockingExecute(implicit dynamo: ActorRef, timeout: Timeout) {
     Await.ready(this.executeOn(dynamo)(timeout).flatMap{ _ =>
-      IsTableActive()(dyn).blockUntilTrue(timeout)
-    }, timeout)
+      IsTableActive()(dyn).blockUntilTrue(timeout.duration)
+    }, timeout.duration)
   }
 
 
@@ -60,7 +60,7 @@ case class IsTableActive[T](implicit dyn: DynamoObject[T]) extends DbOperation[B
 
   def blockUntilTrue(timeout:Duration)(implicit dynamo: ActorRef): Future[Unit] = {
     val start = System.currentTimeMillis()
-    implicit var sys = ActorSystem("blockUntilTrue") //TODO: this is not very resource-efficient (Peter G. 23/10/2012)
+    implicit val sys = ActorSystem("blockUntilTrue") //TODO: this is not very resource-efficient (Peter G. 23/10/2012)
     val promise = Promise[Unit]().onComplete(_ => sys.shutdown())
 
     def schedule() {

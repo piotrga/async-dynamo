@@ -9,11 +9,13 @@ import akka.pattern.ask
 trait DbOperation[T]{ self =>
   def map[B](g: T => B): DbOperation[B] = (db: AmazonDynamoDBClient, tablePrefix:String) => g(execute(db, tablePrefix))
   def flatMap[B](g: T => DbOperation[B]): DbOperation[B] = (db: AmazonDynamoDBClient, tablePrefix:String) => g(execute(db, tablePrefix)).execute(db, tablePrefix)
+  def >>[B](g: => DbOperation[B]): DbOperation[B] = flatMap(_ => g)
+  def andThen[B](g: => DbOperation[B]) = >>(g)
 
   private[dynamo] def execute(db: AmazonDynamoDBClient, tablePrefix:String):T
 
-  def blockingExecute(implicit dynamo: ActorRef, timeout:Duration): T = {
-    Await.result(executeOn(dynamo)(Timeout(timeout)), timeout)
+  def blockingExecute(implicit dynamo: ActorRef, timeout:Timeout): T = {
+    Await.result(executeOn(dynamo)(timeout), timeout.duration)
   }
 
   def executeOn(dynamo: ActorRef)(implicit timeout:Timeout): Future[T] = {
@@ -26,7 +28,4 @@ object DbOperation{
 //    protected def execute(db: AmazonDynamoDBClient, tablePrefix: String) = r.apply((db, tablePrefix))
 //  }
 
-  implicit def toDbOperation[T](f : ( AmazonDynamoDBClient, String) => T) : DbOperation[T] = new DbOperation[T] {
-    private[dynamo] def execute(db: AmazonDynamoDBClient, tablePrefix: String) = f(db, tablePrefix)
-  }
 }

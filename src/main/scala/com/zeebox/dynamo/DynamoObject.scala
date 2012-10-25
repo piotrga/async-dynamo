@@ -74,12 +74,10 @@ object Demo extends App{
   case class Tst(id :String, name: String, email: String)
   implicit val ss = DynamoObject.of3(Tst)
   val tst = Tst("12312321", "Piotr", "piotrga@gmail.com")
-  println(ss.toDynamo(tst))
   assert(ss.fromDynamo(ss.toDynamo(tst)) == tst)
 
 
   val tst2 = Tst("12312321", "Piotr", null)
-  println(ss.toDynamo(tst2))
   assert(ss.fromDynamo(ss.toDynamo(tst2)) == tst2)
 
 

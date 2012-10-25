@@ -1,34 +1,32 @@
 package com.zeebox.dynamo
 
 import org.scalatest.matchers.MustMatchers
-import org.scalatest.{BeforeAndAfterAll, FreeSpec}
-import com.amazonaws.services.dynamodb.model.AttributeValue
+import org.scalatest.FreeSpec
 import java.util.UUID
-import akka.util.duration._
-import akka.pattern.ask
 
 
 class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSupport{
   import DynamoTestDataObjects._
+  import blocking._
 
   "Save/Get" in {
     assertCanSaveGetObject()
   }
 
   "Get returns None if record not found" in {
-    assert( Read[DynamoTestObject](UUID.randomUUID().toString).blockingExecute === None )
+    assert( Read[DynamoTestObject](UUID.randomUUID().toString) === None )
   }
 
   "Reading from non-existent table causes ThirdPartyException" in {
     intercept[ThirdPartyException]{
-      Read[Broken](UUID.randomUUID().toString).blockingExecute
+      Read[Broken](UUID.randomUUID().toString)
     }.getMessage must include("resource not found")
   }
 
   "Client survives 100 parallel errors" in {
     (1 to 100).par.foreach{ i =>
       intercept[ThirdPartyException]{
-        Read[Broken](UUID.randomUUID().toString).blockingExecute
+        Read[Broken](UUID.randomUUID().toString)
       }
     }
     assertCanSaveGetObject()
@@ -36,17 +34,17 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
 
   "Delete" in {
     val obj = DynamoTestObject(UUID.randomUUID().toString, "some test value" + math.random)
-    Save(obj).blockingExecute
-    DeleteById[DynamoTestObject](obj.id).blockingExecute
+    Save(obj)
+    DeleteById[DynamoTestObject](obj.id)
 
-    Read[DynamoTestObject](obj.id).blockingExecute must be ('empty)
+    Read[DynamoTestObject](obj.id) must be ('empty)
   }
 
   private def assertCanSaveGetObject() {
     val obj = DynamoTestObject(UUID.randomUUID().toString, "some test value" + math.random)
-    Save(obj).blockingExecute
+    Save(obj)
 
-    val saved = Read[DynamoTestObject](obj.id).blockingExecute.get
+    val saved = Read[DynamoTestObject](obj.id).get
     assert(saved === obj)
   }
 

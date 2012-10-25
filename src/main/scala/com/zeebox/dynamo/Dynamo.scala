@@ -1,6 +1,6 @@
 package com.zeebox.dynamo
 
-import akka.actor.{Props, ActorSystem, Kill, Actor}
+import akka.actor.{Props, ActorSystem, Actor}
 import com.amazonaws.services.dynamodb.AmazonDynamoDBClient
 import com.amazonaws.auth.BasicAWSCredentials
 import akka.actor.Status.Failure
@@ -25,16 +25,16 @@ object Dynamo{
   def apply(config: DynamoConfig, connectionCount: Int) = {
     val system = ActorSystem("Dynamo")
     system.actorOf(Props(new Actor {
-      val router = context.actorOf(Props(new Dynamo(config)), "DynamoConnection")
-//      val router = context.actorOf(Props(new Dynamo(config)).withRouter(RoundRobinRouter(connectionCount)), "DynamoConnection")
+      val router = context.actorOf(Props(new Dynamo(config)).withRouter(RoundRobinRouter(connectionCount)), "DynamoConnection")
 
       protected def receive = {
-        case Kill =>
+        case 'stop =>
           system.shutdown()
-        case msg =>
+        case msg: DbOperation[_] =>
           router forward msg
+        case _ => () // ignore other messages
       }
-    }))
+    }), "DynamoClient")
   }
 }
 

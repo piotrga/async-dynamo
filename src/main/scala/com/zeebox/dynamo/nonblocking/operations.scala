@@ -1,4 +1,4 @@
-package com.zeebox.dynamo
+package com.zeebox.dynamo.nonblocking
 
 import scala.collection.JavaConverters._
 import com.amazonaws.services.dynamodb.model._
@@ -8,8 +8,7 @@ import com.amazonaws.services.dynamodb.model.PutItemRequest
 import com.amazonaws.services.dynamodb.model.ScanRequest
 import com.amazonaws.services.dynamodb.model.DeleteItemRequest
 import com.amazonaws.services.dynamodb.model.Key
-
-
+import com.zeebox.dynamo.{DynamoObject, DbOperation}
 
 
 case class Save[T : DynamoObject](o : T) extends DbOperation[T]{
@@ -40,7 +39,6 @@ case class DeleteAll[T](implicit dyn:DynamoObject[T]) extends DbOperation[Int]{
     val res = db.scan(new ScanRequest(dyn.table(tablePrefix)))
     res.getItems.asScala.par.map{ item =>
       val id = item.get(dyn.keyName)
-      println("Deleting item [%s] from [%s]" format(id, dyn.table(tablePrefix)))
       db.deleteItem( new DeleteItemRequest().withTableName(dyn.table(tablePrefix)).withKey(new Key().withHashKeyElement(id)) )
     }
     res.getCount
