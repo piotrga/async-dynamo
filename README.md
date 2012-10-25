@@ -4,6 +4,9 @@ async-dynamo is asynchronous client for Amazon Dynamo database. It is based on A
 
 Quick Start
 ===========
+
+SBT
+---
 Add the following to your build.sbt file:
 ```scala
 resolvers += "Zeebox" at "http://nexus.zeebox.com:8080/nexus/content/repositories/releases"
@@ -11,7 +14,8 @@ resolvers += "Zeebox" at "http://nexus.zeebox.com:8080/nexus/content/repositorie
 libraryDependencies += "com.zeebox" % "async-dynamo" % "1.0.0"
 ```
 
-
+Example
+-------
 ```scala
 package com.zeebox
 
