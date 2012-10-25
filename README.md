@@ -45,37 +45,6 @@ val operation = for {
   .onComplete{ case _ => dynamo ! 'stop }
 ```
 
-Explanation
------------
-First let's start Dynamo client:
-```scala
-implicit val dynamo = Dynamo(
-DynamoConfig(
-  System.getProperty("amazon.accessKey"),
-  System.getProperty("amazon.secret"),
-  tablePrefix = "devng_",
-  endpointUrl = System.getProperty("dynamo.url", "https://dynamodb.eu-west-1.amazonaws.com")
-),
-connectionCount = 3)
-```
-
-Now let's create a Person case class and tell Dynamo how to save it:
-```scala
-case class Person(id :String, name: String, email: String)
-implicit val personDO = DynamoObject.of3(Person) // make Person dynamo-enabled
-```
-Let's create a table in Dynamo:
-```scala
-if (! TableExists[Person]()) //implicit kicks in to convert DbOperation[T] to T
-  CreateTable[Person](5,5).blockingExecute(dynamo, 1 minute) // explicit blocking call to set custom timeout
-```
-And finally let's do some Dynamo operations:
-```scala
-val julian = Person("123", "Julian", "julian@gmail.com")
-val saved : Option[Person] = Save(julian) andThen Read[Person](julian.id) // implicit automatically executes and blocks for convenience
-assert(saved == Some(julian))
-```
-
 Information for developers
 ==========================
 
