@@ -13,7 +13,8 @@ object DynamoTestDataObjects{
   implicit object DynamoTestDO extends DynamoObject[DynamoTestObject]{
     def toDynamo(t: DynamoTestObject) = Map("id"->t.id, "someValue"->t.someValue)
     def fromDynamo(a: Map[String, AttributeValue]) = DynamoTestObject(a("id").getS, a("someValue").getS)
-    protected val table = "%s_dynamotest" format Option(System.getenv("USER")).getOrElse("unknown") }
+    protected val table = "%s_dynamotest" format Option(System.getenv("USER")).getOrElse("unknown")
+  }
 
   case class Broken(id:String)
   implicit object BrokenDO extends DynamoObject[Broken]{

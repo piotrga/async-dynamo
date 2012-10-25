@@ -57,6 +57,19 @@ val operation = for {
   .onComplete{ case _ => dynamo ! 'stop }
 ```
 
+Explicit type class definition
+------------------------------
+If you need more flexibility when mapping your object to Dynamo table you can define the type class yourself, i.e.
+```scala
+case class DynamoTestObject(id:String, someValue:Int)
+
+implicit object DynamoTestDO extends DynamoObject[DynamoTestObject]{
+  def toDynamo(t: DynamoTestObject) = Map("id"->t.id, "someValue"->t.someValue.toString)
+  def fromDynamo(a: Map[String, AttributeValue]) = DynamoTestObject(a("id").getS, a("someValue").getS.toInt)
+  protected val table = "%s_dynamotest" format Option(System.getenv("USER")).getOrElse("unknown")
+}
+```
+
 Information for developers
 ==========================
 
