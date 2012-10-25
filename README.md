@@ -5,6 +5,7 @@ async-dynamo is asynchronous client for Amazon Dynamo database. It is based on A
 Quick Start
 ===========
 First let's start Dynamo client:
+
     implicit val dynamo = Dynamo(
     DynamoConfig(
       System.getProperty("amazon.accessKey"),
@@ -14,21 +15,24 @@ First let's start Dynamo client:
     ),
     connectionCount = 3)
 
-Now lets create a Person case class and tell dynamo how to save it
+Now let's create a Person case class and tell Dynamo how to save it
 
     case class Person(id :String, name: String, email: String)
     implicit val personDO = DynamoObject.of3(Person) // make Person dynamo-enabled
 
-Lets create a table in Dynamo
+Let's create a table in Dynamo
+
     if (! TableExists[Person]()) //implicit kicks in to convert DbOperation[T] to T
       CreateTable[Person](5,5).blockingExecute(dynamo, 1 minute) // this is long so explicit blocking call
 
-And finally lets do some Dynamo operations
+And finally let's do some Dynamo operations
+
      val julian = Person("123", "Julian", "julian@gmail.com")
      val saved : Option[Person] = Save(julian) andThen Read[Person](julian.id) // implicit automatically executes and blocks for convenience
      assert(saved == Some(julian))
 
 Here is a full example:
+
     package com.zeebox
 
     import com.zeebox.dynamo._
@@ -64,6 +68,7 @@ Here is a full example:
 
 Information for developers
 ==========================
+
 Building
 --------
 This library is build with SBT:
