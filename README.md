@@ -30,6 +30,21 @@ object QuckStart extends App{
   } finally dynamo ! 'stop
 }
 ```
+
+Asynchronous version
+--------------------
+```scala
+val operation = for {
+  _ <- Save(julian)
+  saved <- Read[Person]("123")
+  _ <- DeleteById[Person]("123")
+} yield saved
+
+(operation executeOn dynamo)
+  .onSuccess { case person => println("Saved [%s]" format person)}
+  .onComplete{ case _ => dynamo ! 'stop }
+```
+
 Explanation
 -----------
 First let's start Dynamo client:

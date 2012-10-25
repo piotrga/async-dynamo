@@ -1,3 +1,4 @@
+
 package com.zeebox
 
 import com.zeebox.dynamo._
@@ -27,5 +28,16 @@ object QuckStart extends App{
     val julian = Person("123", "Julian", "julian@gmail.com")
     val saved : Option[Person] = Save(julian) andThen Read[Person](julian.id) // implicit automatically executes and blocks for convenience
     assert(saved == Some(julian))
+
+//    val operation = for {
+//      _ <- Save(julian)
+//      saved <- Read[Person]("123")
+//      _ <- DeleteById[Person]("123")
+//    } yield saved
+//
+//    (operation executeOn dynamo)
+//      .onSuccess { case person => println("Saved [%s]" format person)}
+//      .onComplete{ case _ => dynamo ! 'stop }
+
   } finally dynamo ! 'stop
 }
