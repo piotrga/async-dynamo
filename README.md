@@ -11,7 +11,7 @@ Add the following to your build.sbt file:
 ```scala
 resolvers += "Zeebox" at "http://nexus.zeebox.com:8080/nexus/content/repositories/releases"
 
-libraryDependencies += "com.zeebox" % "async-dynamo" % "1.0.0"
+libraryDependencies += "com.zeebox" % "async-dynamo" % "1.1.0"
 ```
 
 Example
@@ -75,7 +75,13 @@ Information for developers
 
 Building
 --------
-This library is build with SBT:
+This library is build with SBT.
+
+### AWS Credentials
+In order for tests to be able to connect to Dynamo you have to open Amazon AWS account and pass the AWS credentials to scala via properties.
+The easiest way to do this is to add them to SBT_OPTS variable, i.e. `export SBT_OPTS='$SBT_OPTS -Damazon.accessKey="..." -Damazon.secret="..."'`
+
+To build async-dynamo run:
 
      sbt clean test
 
