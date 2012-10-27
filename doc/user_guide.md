@@ -38,12 +38,12 @@ If you need more control you can define the mapping yourself:
     }
 ```
 
-Basic operations
-----------------
-### Blocking vs non-blocking
+Blocking vs non-blocking
+------------------------
+
 Depending on your needs you can either use blocking or non-blocking version of operations by importing the appropriate package.
 
-_Blocking:_
+### Blocking
 ```scala
 
 import blocking._
@@ -53,7 +53,8 @@ implicit val timeout = ...
 Save(julian)
 println(Read[Person](julian.id))
 ```
-_Non-blocking_
+
+### Non-blocking
 
 ```scala
 
@@ -66,7 +67,8 @@ implicit val timeout = ...
     .onResult ( println(_) )
 
 ```
-_Monadic non-blocking_
+
+### Monadic non-blocking
 Dynamo operations are monadic so you can compose them at will:
 ```scala
 import nonblocking._
@@ -82,31 +84,69 @@ def transfer(amount: Double, fromId: String, toId: String) = for{
 
 transfer(100, "account-123", "account-987") executeOn dynamo
 ```
-_Implicits to make live easier_
+
+### Implicits to make live easier
 When the result type is known and `dynamo` and `timeout` are in scope we can benefit from even simpler syntax
 ```scala
 implicit val dynamo = ...
 implicit val timeout = ...
 
-def findById(id : String) : Future[Option[Person]] = Read[Person]("123") // this will translate to Read[Person]("123") executeOn dynamo
-def findByIdBlocking(id : String) : Option[Person] = Read[Person]("123") // this will translate to Await.result(Read[Person]("123") executeOn dynamo, timeout).asInstanceOf[Person]
+def findById(id : String) : Future[Option[Person]] = Read[Person]("123")
+// this will translate to Read[Person]("123") executeOn dynamo
+
+def findByIdBlocking(id : String) : Option[Person] = Read[Person]("123")
+// this will translate to Await.result(Read[Person]("123") executeOn dynamo, timeout)
 
 ```
+
+Basic operations
+----------------
 
 ### Saving objects
 ```scala
 import com.zeebox.dynamo._
-import nonblocking._
+
+implicit val dynamo = ...
+implicit val timeout = ...
+
 val julian = Person("id-123", "Julian", "julian@gmail.com")
-val savedFuture = Save(julian) executeOn dynamo
-val saved = Await.result(savedFuture, 1 second)
+
+import nonblocking._
+Save(julian) executeOn dynamo onResult (println(_))
+
+//or
+
+import blocking._
+println(Save(julian))
 ```
 
 ### Reading objects
-TBD
+```scala
+import com.zeebox.dynamo._
+
+implicit val dynamo = ...
+implicit val timeout = ...
+
+import nonblocking._
+Read[Person]("123") executeOn dynamo onResult (println(_))
+
+//or
+
+import blocking._
+println(Read[Person]("123"))
+```
 
 ### Deleting object
-TBD
+```scala
+import nonblocking._
+DeleteById[Person]("123") executeOn dynamo onResult(_ => println("Deleted 123"))
+
+//or
+
+import blocking._
+DeleteById[Person]("123")
+
+```
 
 Adding new operations
 ---------------------
