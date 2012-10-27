@@ -64,10 +64,13 @@ implicit val timeout = ...
 
 (Save(julian) executeOn dynamo)
     .flatMap ( saved =>  Read[Person](saved.id) executeOn dynamo )
-    .onResult ( println(_) )
+    .onSuccess{ case p => println(p) }
 
 ```
-
+If you dont like implicit variables:
+```scala
+Save(julian) executeOn(dynamo)(10 seconds)
+```
 ### Monadic non-blocking
 Dynamo operations are monadic so you can compose them at will:
 ```scala
@@ -86,8 +89,12 @@ transfer(100, "account-123", "account-987") executeOn dynamo
 ```
 
 ### Implicits to make live easier
-When the result type is known and `dynamo` and `timeout` are in scope we can benefit from even simpler syntax
+When the result type is known and `dynamo` and `timeout` are in scope we can benefit from even simpler syntax.
+You need to `import com.zeebox.dynamo._` to activate them.
 ```scala
+import com.zeebox.dynamo._
+import nonblocking._
+
 implicit val dynamo = ...
 implicit val timeout = ...
 
@@ -112,7 +119,7 @@ implicit val timeout = ...
 val julian = Person("id-123", "Julian", "julian@gmail.com")
 
 import nonblocking._
-Save(julian) executeOn dynamo onResult (println(_))
+Save(julian) executeOn dynamo onSuccess { case p => println(p) }
 
 //or
 
@@ -128,7 +135,7 @@ implicit val dynamo = ...
 implicit val timeout = ...
 
 import nonblocking._
-Read[Person]("123") executeOn dynamo onResult (println(_))
+Read[Person]("123") executeOn dynamo onSuccess { case p => println(p) }
 
 //or
 
@@ -139,15 +146,31 @@ println(Read[Person]("123"))
 ### Deleting object
 ```scala
 import nonblocking._
-DeleteById[Person]("123") executeOn dynamo onResult(_ => println("Deleted 123"))
+DeleteById[Person]("123") executeOn dynamo onSuccess { case _ => println("Deleted 123") }
 
 //or
 
 import blocking._
 DeleteById[Person]("123")
-
 ```
 
 Adding new operations
 ---------------------
 The async-dynamo was written following open-closed principle. This means that you can add new operations easily and they will work with the library in the same way as the operations, which are pre-packaged with library.
+For example if we wanted to add `ListAll` operation:
+```scala
+case class ListAll[T](limit : Int)(implicit dyn:DynamoObject[T]) extends DbOperation[Seq[T]]{
+  def execute(db: AmazonDynamoDBClient, tablePrefix:String) : Seq[T] = {
+    db.scan(new ScanRequest(dyn.table(tablePrefix)).withLimit(limit)).getItems.asScala.map {
+      item => dyn.fromDynamo(item.asScala.toMap)
+    }
+  }
+}
+
+```
+
+Admin operations
+----------------
+### Creating table
+### Checking table status
+### Deleting table

@@ -15,6 +15,10 @@ object QuckStart extends App{
 
   val julian = Person("123", "Julian", "julian@gmail.com")
 
+  (Save(julian) executeOn dynamo)
+    .flatMap ( saved =>  Read[Person](saved.id) executeOn dynamo )
+    .onSuccess{ case p => println(p) }
+
   def sync(){
     try{
       if (! TableExists[Person]()) //implicit kicks in to convert DbOperation[T] to T
