@@ -35,8 +35,8 @@ object QuckStart extends App{
     case class Person(id :String, name: String, email: String)
     implicit val personDO = DynamoObject.of3(Person) // make Person dynamo-enabled
 
-    if (! TableExists[Person]()) //implicit kicks in to convert DbOperation[T] to T
-      CreateTable[Person](5,5).blockingExecute(dynamo, 1 minute) // explicit blocking call to set custom timeout
+    if (! TableExists[Person]()) //implicit kicks in to execute operation as blocking
+      CreateTable[Person](5,5).blockingExecute(dynamo, 1 minute) // overriding implicit timeout
 
     val julian = Person("123", "Julian", "julian@gmail.com")
     val saved : Option[Person] = Save(julian) andThen Read[Person](julian.id) // implicit automatically executes and blocks for convenience
@@ -64,15 +64,18 @@ Explicit type class definition
 ------------------------------
 If you need more flexibility when mapping your object to Dynamo table you can define the type class yourself, i.e.
 ```scala
-case class DynamoTestObject(id:String, someValue:Int)
+    case class Account(id: String, balance: Double, lastModified: Date)
 
-implicit object DynamoTestDO extends DynamoObject[DynamoTestObject]{
-  def toDynamo(t: DynamoTestObject) = Map("id"->t.id, "someValue"->t.someValue.toString)
-  def fromDynamo(a: Map[String, AttributeValue]) = DynamoTestObject(a("id").getS, a("someValue").getS.toInt)
-  protected val table = "%s_dynamotest" format Option(System.getenv("USER")).getOrElse("unknown")
-}
+    implicit val AccoundDO : DynamoObject[Account] = new DynamoObject[Account]{
+        val table = "account"
+        def toDynamo( a : Account)  = Map( "id" -> a.id,
+                  "balance" -> a.balance.toString,
+                  "lastModified" -> formatter.toString(a.lastModified )
+
+        def fromDynamo(f: Map[String, AttributeValue]) =
+            Account( f("id").getS, f("balance").getS.toDouble, formatter.parse(f("lastModified").getS) )
+    }
 ```
-
 Information for developers
 ==========================
 
