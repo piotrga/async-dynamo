@@ -85,7 +85,7 @@ def transfer(amount: Double, fromId: String, toId: String) = for{
     accountToAfter <- Save(accountTo.copy(balance = accountTo + amount))
 } yield (accountFromAfter, accountToAfter )
 
-transfer(100, "account-123", "account-987") executeOn dynamo
+transfer(amount = 100, fromId = "account-123", toId = "account-987") executeOn dynamo
 ```
 
 ### Implicits to make live easier
