@@ -177,5 +177,21 @@ case class ListAll[T](limit : Int)(implicit dyn:DynamoObject[T]) extends DbOpera
 Admin operations
 ----------------
 ### Creating table
+```scala
+CreateTable[Account] executeOn dynamo
+
+//to create and wait until table is active
+CreateTable[Account].blockingExecute(dynamo, 1 minute)
+
+```
 ### Checking table status
+```scala
+if (TableExists[Account].blockingExecute) println("Account table exists!")
+
+try IsTableActive[Account].blockUntilTrue(1 minute) catch { case ex:TimeoutException => println("not active") }
+
+```
 ### Deleting table
+```scala
+DeleteTable[Account] executeOn dynamo
+```
