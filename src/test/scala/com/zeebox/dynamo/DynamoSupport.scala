@@ -3,7 +3,6 @@ package com.zeebox.dynamo
 import nonblocking.{CreateTable, TableExists}
 import org.scalatest.{Suite, BeforeAndAfterAll}
 import akka.util.duration._
-import akka.actor.Kill
 import com.amazonaws.services.dynamodb.model.AttributeValue
 import akka.util.Timeout
 
