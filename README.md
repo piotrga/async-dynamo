@@ -4,6 +4,9 @@ async-dynamo is asynchronous client for Amazon Dynamo database. It is based on A
 
 Quick Start
 ===========
+For detailed information please read [user_guide].
+
+[user_guide]: ./doc/user_guide.md "User Guide"
 
 SBT
 ---
