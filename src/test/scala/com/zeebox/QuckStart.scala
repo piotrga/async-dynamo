@@ -15,9 +15,17 @@ object QuckStart extends App{
 
   val julian = Person("123", "Julian", "julian@gmail.com")
 
-  (Save(julian) executeOn dynamo)
-    .flatMap ( saved =>  Read[Person](saved.id) executeOn dynamo )
-    .onSuccess{ case p => println(p) }
+  case class Account(id:String, balance:Double)
+
+  def transfer(amount: Double, fromId: String, toId: String) = for{
+    accountFrom <- Read[Account](fromId).map(_.getOrElse(notFoundError(fromId)))
+    accountTo <- Read[Account](toId).map(_.getOrElse(notFoundError(toId)))
+    accountFromAfter <- Save(accountFrom.copy(balance = accountFrom.balance - amount))
+    accountToAfter <- Save(accountTo.copy(balance = accountTo.balance + amount))
+  } yield (accountFromAfter, accountToAfter )
+
+
+  def notFoundError(id: Any): Nothing = sys.error("Account [%s] not found" format id)
 
   def sync(){
     try{

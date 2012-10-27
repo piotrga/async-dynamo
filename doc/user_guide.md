@@ -78,12 +78,17 @@ import nonblocking._
 val dynamo = ...
 implicit val timeout = ...
 
+case class Account(id: String, balance: Double)
+def notFoundError(id: Any): Nothing = sys.error("Account [%s] not found" format id)
+
 def transfer(amount: Double, fromId: String, toId: String) = for{
-    accountFrom <- Read[Account](fromId)
-    accountTo <- Read[Account](toId)
-    accountFromAfter <- Save(accountFrom.copy(balance = accountFrom - amount))
-    accountToAfter <- Save(accountTo.copy(balance = accountTo + amount))
+    accountFrom <- Read[Account](fromId).map(_.getOrElse(notFoundError(fromId)))
+    accountTo <- Read[Account](toId).map(_.getOrElse(notFoundError(toId)))
+    accountFromAfter <- Save(accountFrom.copy(balance = accountFrom.balance - amount))
+    accountToAfter <- Save(accountTo.copy(balance = accountTo.balance + amount))
 } yield (accountFromAfter, accountToAfter )
+
+
 
 transfer(amount = 100, fromId = "account-123", toId = "account-987") executeOn dynamo
 ```
