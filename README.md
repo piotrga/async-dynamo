@@ -6,7 +6,7 @@ Quick Start
 ===========
 For detailed information please read [User Guide][user_guide].
 
-[user_guide]: /async-dynamo/doc/user_guide.md "User Guide"
+[user_guide]: /piotrga/async-dynamo/doc/user_guide.md "User Guide"
 
 SBT
 ---
