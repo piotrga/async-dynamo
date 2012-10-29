@@ -21,8 +21,7 @@ If you need more control you can define the mapping yourself:
     implicit val AccoundDO : DynamoObject[Account] = new DynamoObject[Account]{
 
         def table = "account"
-        def keyName = "id"
-        def keyType = "S"
+        def key = key("id", "S")
 
         def toDynamo( a : Account) : Map[String, AttributeValue] =
             Map(    "id" -> toAttribute(a.id),

@@ -19,9 +19,13 @@ case class Save[T : DynamoObject](o : T) extends DbOperation[T]{
   }
 }
 
-case class Read[T](id:String)(implicit dyn:DynamoObject[T]) extends DbOperation[Option[T]]{
+case class Read[T](id:String, consistentRead : Boolean = true)(implicit dyn:DynamoObject[T]) extends DbOperation[Option[T]]{
   def execute(db: AmazonDynamoDBClient, tablePrefix:String) : Option[T] = {
-    val attributes = db.getItem(new GetItemRequest(dyn.table(tablePrefix), new Key().withHashKeyElement(new AttributeValue(id)))).getItem
+
+    val read = new GetItemRequest( dyn.table(tablePrefix), new Key().withHashKeyElement(new AttributeValue(id)))
+      .withConsistentRead(consistentRead)
+
+    val attributes = db.getItem(read).getItem
     Option (attributes) map ( attr => dyn.fromDynamo(attr.asScala.toMap) )
   }
 }
@@ -38,7 +42,7 @@ case class DeleteAll[T](implicit dyn:DynamoObject[T]) extends DbOperation[Int]{
   def execute(db: AmazonDynamoDBClient, tablePrefix:String) : Int = {
     val res = db.scan(new ScanRequest(dyn.table(tablePrefix)))
     res.getItems.asScala.par.map{ item =>
-      val id = item.get(dyn.keyName)
+      val id = item.get(dyn.key.getAttributeName)
       db.deleteItem( new DeleteItemRequest().withTableName(dyn.table(tablePrefix)).withKey(new Key().withHashKeyElement(id)) )
     }
     res.getCount

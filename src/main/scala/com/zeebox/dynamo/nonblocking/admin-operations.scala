@@ -11,14 +11,14 @@ import com.zeebox.dynamo._
 case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
   def execute(db: AmazonDynamoDBClient, tablePrefix:String) {
 
-    val hashKey = new KeySchemaElement()
-      .withAttributeName(dyn.keyName)
-      .withAttributeType(dyn.keyType)
 
-    val ks = if (dyn.keyRange)
-      new KeySchema().withRangeKeyElement(hashKey)
-    else
-      new KeySchema().withHashKeyElement(hashKey)
+    val keySchema = dyn.range match {
+      case Some((range)) =>
+        new KeySchema().withHashKeyElement(dyn.key)
+        .withRangeKeyElement(range)
+      case None =>
+        new KeySchema().withHashKeyElement(dyn.key)
+    }
 
     val provisionedThroughput = new ProvisionedThroughput()
       .withReadCapacityUnits(readThroughput)
@@ -26,7 +26,7 @@ case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(imp
 
     val request = new CreateTableRequest()
       .withTableName(dyn.table(tablePrefix))
-      .withKeySchema(ks)
+      .withKeySchema(keySchema)
       .withProvisionedThroughput(provisionedThroughput)
     db.createTable(request)
   }

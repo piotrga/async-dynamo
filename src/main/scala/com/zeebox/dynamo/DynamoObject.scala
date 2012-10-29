@@ -1,17 +1,20 @@
 package com.zeebox.dynamo
 
-import com.amazonaws.services.dynamodb.model.AttributeValue
+import com.amazonaws.services.dynamodb.model.{KeySchemaElement, AttributeValue}
+
+
+
 
 trait DynamoObject[T]{
   protected implicit def toAttribute(value : String) = new AttributeValue().withS(value)
+  protected def key(attrName:String, attrType: String) = new KeySchemaElement().withAttributeName(attrName).withAttributeType(attrType)
 
   protected def table : String
   def toDynamo(t:T) : Map[String, AttributeValue]
   def fromDynamo(attributes: Map[String, AttributeValue]) : T
   def table(prefix: String): String = prefix + table
-  def keyName: String = "id"
-  def keyType: String = "S"
-  def keyRange: Boolean = false
+  def key: KeySchemaElement = key("id", "S")
+  def range: Option[KeySchemaElement] = None
 }
 
 object DynamoObject {
@@ -37,7 +40,7 @@ object DynamoObject {
 
   def apply[T <: Product :ClassManifest]( construct : Seq[String] => T) : DynamoObject[T] = {
     lazy val names = extractFieldNames(classManifest[T])
-    lazy val _keyName = names(0)
+    lazy val keyName = names(0)
     lazy val className = classManifest.erasure.getSimpleName
 
 
@@ -45,7 +48,7 @@ object DynamoObject {
       def fromDynamo(attributes: Map[String, AttributeValue]) = construct(names.zipWithIndex.map{ case (name, i) => attributes.get(name).map(_.getS).getOrElse(null)})
       def toDynamo(t: T) = names.zipWithIndex.filter{ case(name,i) => t.productElement(i) != null }.map {case (name, i) => (name, new AttributeValue().withS(t.productElement(i).toString))}.toMap
 
-      override def keyName = _keyName
+      override def key = key(keyName, "S")
       protected def table = className
     }
   }

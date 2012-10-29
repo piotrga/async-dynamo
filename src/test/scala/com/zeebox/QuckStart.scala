@@ -16,6 +16,7 @@ object QuckStart extends App{
   val julian = Person("123", "Julian", "julian@gmail.com")
 
   case class Account(id:String, balance:Double)
+  implicit val xxx : DynamoObject[Account] = null
 
   def transfer(amount: Double, fromId: String, toId: String) = for{
     accountFrom <- Read[Account](fromId).map(_.getOrElse(notFoundError(fromId)))

@@ -12,11 +12,7 @@ nextVersion := { ver => Version(ver).map(_.bumpBugfix.asSnapshot.string).getOrEl
 // PUBLISHING
 publishMavenStyle := true
 
-publishTo <<= (version) { version: String =>
-  val nexus = "http://nexus.zeebox.com:8080/nexus/content/repositories/"
-  if (version.trim.endsWith("SNAPSHOT")) Some("snapshots" at nexus + "snapshots/")
-  else                                   Some("releases"  at nexus + "releases/")
-}
+publishTo :=  Resolver.file("piotrga", file(sys.env("PIOTRGA_GITHUB_REPO")))
 
 credentials += Credentials(Path.userHome / ".ivy2" / "zeebox.credentials")
 

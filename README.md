@@ -12,9 +12,9 @@ SBT
 ---
 Add the following to your build.sbt file:
 ```scala
-resolvers += "Zeebox" at "http://nexus.zeebox.com:8080/nexus/content/repositories/releases"
+resolvers += "piotrga" at "https://github.com/piotrga/piotrga.github.com/tree/master/maven-repo"
 
-libraryDependencies += "com.zeebox" % "async-dynamo" % "1.1.0"
+libraryDependencies += "asyncdynamo" % "async-dynamo" % "1.1.0"
 ```
 
 Example

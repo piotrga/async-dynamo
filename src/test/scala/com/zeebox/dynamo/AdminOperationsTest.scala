@@ -10,7 +10,6 @@ import java.util.concurrent.TimeoutException
 import annotation.tailrec
 
 class AdminOperationsTest extends FreeSpec with MustMatchers with DynamoSupport{
-  import DbOperation._
   case class AdminTest(id:String, value: String)
   implicit val at1DO = DynamoObject.of2(AdminTest)
 
