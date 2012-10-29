@@ -20,9 +20,8 @@ libraryDependencies += "asyncdynamo" % "async-dynamo" % "1.1.0"
 Example
 -------
 ```scala
-package com.zeebox
 
-import com.zeebox.dynamo._
+import asyncdynamo._
 import nonblocking._
 import akka.util.duration._
 import akka.util.Timeout

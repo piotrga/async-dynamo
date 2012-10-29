@@ -1,4 +1,4 @@
-package com.zeebox.dynamo.nonblocking
+package asyncdynamo.nonblocking
 
 import scala.collection.JavaConverters._
 import com.amazonaws.services.dynamodb.model._
@@ -8,7 +8,7 @@ import com.amazonaws.services.dynamodb.model.PutItemRequest
 import com.amazonaws.services.dynamodb.model.ScanRequest
 import com.amazonaws.services.dynamodb.model.DeleteItemRequest
 import com.amazonaws.services.dynamodb.model.Key
-import com.zeebox.dynamo.{DynamoObject, DbOperation}
+import asyncdynamo.{DynamoObject, DbOperation}
 
 
 case class Save[T : DynamoObject](o : T) extends DbOperation[T]{

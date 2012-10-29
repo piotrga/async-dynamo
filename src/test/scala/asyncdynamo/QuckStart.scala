@@ -1,7 +1,6 @@
 
-package com.zeebox
+package asyncdynamo
 
-import com.zeebox.dynamo._
 import nonblocking._
 import akka.util.duration._
 import akka.util.Timeout

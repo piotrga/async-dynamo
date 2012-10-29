@@ -1,13 +1,14 @@
-package com.zeebox.dynamo
+package asyncdynamo
 
 import org.scalatest.matchers.MustMatchers
 import org.scalatest.FreeSpec
 import java.util.UUID
 
+import asyncdynamo.blocking._
+
 
 class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSupport{
   import DynamoTestDataObjects._
-  import blocking._
 
   "Save/Get" in {
     assertCanSaveGetObject()

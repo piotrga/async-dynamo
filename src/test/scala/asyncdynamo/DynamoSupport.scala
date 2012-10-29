@@ -1,10 +1,10 @@
-package com.zeebox.dynamo
+package asyncdynamo
 
 import nonblocking.{CreateTable, TableExists}
-import org.scalatest.{Suite, BeforeAndAfterAll}
+import org.scalatest.{BeforeAndAfterAll, Suite}
+import akka.util.Timeout
 import akka.util.duration._
 import com.amazonaws.services.dynamodb.model.AttributeValue
-import akka.util.Timeout
 
 object DynamoTestDataObjects{
   case class DynamoTestObject(id:String, someValue:String)
@@ -23,16 +23,6 @@ object DynamoTestDataObjects{
   }
 }
 
-trait DynamoSupport extends BeforeAndAfterAll{ self : Suite =>
-  implicit val dynamo = Dynamo(DynamoConfig(System.getProperty("amazon.accessKey"), System.getProperty("amazon.secret"), tablePrefix = "devng_", System.getProperty("dynamo.url", "https://dynamodb.eu-west-1.amazonaws.com")), connectionCount = 3)
-  implicit val timeout = Timeout(10 seconds)
-
-  override protected def afterAll() {
-    dynamo ! 'stop
-    super.afterAll()
-  }
-}
-
 trait DynamoTestObjectSupport extends BeforeAndAfterAll with DynamoSupport{ self : Suite =>
   import DynamoTestDataObjects._
 
@@ -42,6 +32,15 @@ trait DynamoTestObjectSupport extends BeforeAndAfterAll with DynamoSupport{ self
       CreateTable[DynamoTestObject]().blockingExecute(dynamo,1 minute)
     }
   }
+}
 
+trait DynamoSupport extends BeforeAndAfterAll{ self : Suite =>
+  implicit val dynamo = Dynamo(DynamoConfig(System.getProperty("amazon.accessKey"), System.getProperty("amazon.secret"), tablePrefix = "devng_", System.getProperty("dynamo.url", "https://dynamodb.eu-west-1.amazonaws.com")), connectionCount = 3)
+  implicit val timeout = Timeout(10 seconds)
+
+  override protected def afterAll() {
+    dynamo ! 'stop
+    super.afterAll()
+  }
 }
 

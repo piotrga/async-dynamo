@@ -1,4 +1,4 @@
-package com.zeebox.functional
+package asyncdynamo.functional
 
 /**
  * This reader monad in combination with CassandraOperation makes Cassandra operations composable, so we can do:

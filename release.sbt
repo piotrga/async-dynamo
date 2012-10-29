@@ -12,14 +12,13 @@ nextVersion := { ver => Version(ver).map(_.bumpBugfix.asSnapshot.string).getOrEl
 // PUBLISHING
 publishMavenStyle := true
 
-publishTo :=  Resolver.file("piotrga", file(sys.env("PIOTRGA_GITHUB_REPO")))
+publishTo :=  Some(Resolver.file("piotrga", file(sys.env("PIOTRGA_GITHUB_REPO"))))
 
-credentials += Credentials(Path.userHome / ".ivy2" / "zeebox.credentials")
 
 packageOptions <<= (Keys.version, Keys.name, Keys.artifact) map {
   (version: String, name: String, artifact: Artifact) =>
     Seq(ManifestAttributes(
-      "Implementation-Vendor" -> "Zeebox",
+      "Implementation-Vendor" -> "piotrga",
       //"Implementation-Title" -> name,
       "Version" -> version,
       "Build-Number" -> Option(System.getenv("GO_PIPELINE_COUNTER")).getOrElse("NOT_GO_BUILD"),

@@ -94,9 +94,9 @@ transfer(amount = 100, fromId = "account-123", toId = "account-987") executeOn d
 
 ### Implicits to make live easier
 When the result type is known and `dynamo` and `timeout` are in scope we can benefit from even simpler syntax.
-You need to `import com.zeebox.dynamo._` to activate them.
+You need to `import asyncdynamo._` to activate them.
 ```scala
-import com.zeebox.dynamo._
+import asyncdynamo._
 import nonblocking._
 
 implicit val dynamo = ...
@@ -115,7 +115,7 @@ Basic operations
 
 ### Saving objects
 ```scala
-import com.zeebox.dynamo._
+import asyncdynamo._
 
 implicit val dynamo = ...
 implicit val timeout = ...
@@ -133,7 +133,7 @@ println(Save(julian))
 
 ### Reading objects
 ```scala
-import com.zeebox.dynamo._
+import asyncdynamo._
 
 implicit val dynamo = ...
 implicit val timeout = ...

@@ -1,9 +1,6 @@
-package com.zeebox.dynamo
+package asyncdynamo
 
 import com.amazonaws.services.dynamodb.model.{KeySchemaElement, AttributeValue}
-
-
-
 
 trait DynamoObject[T]{
   protected implicit def toAttribute(value : String) = new AttributeValue().withS(value)

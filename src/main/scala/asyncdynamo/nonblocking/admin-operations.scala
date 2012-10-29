@@ -1,4 +1,4 @@
-package com.zeebox.dynamo.nonblocking
+package asyncdynamo.nonblocking
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDBClient
 import com.amazonaws.services.dynamodb.model._
@@ -6,7 +6,7 @@ import akka.dispatch.{Await, Future, Promise}
 import akka.actor.{ActorSystem, ActorRef, Scheduler, Actor}
 import akka.util.{Timeout, Duration}
 import akka.util.duration._
-import com.zeebox.dynamo._
+import asyncdynamo._
 
 case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
   def execute(db: AmazonDynamoDBClient, tablePrefix:String) {
@@ -42,14 +42,14 @@ case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(imp
 }
 
 case class TableExists[T](implicit dyn: DynamoObject[T]) extends DbOperation[Boolean]{
-  private[dynamo] def execute(db: AmazonDynamoDBClient, tablePrefix: String) = {
+  private[asyncdynamo] def execute(db: AmazonDynamoDBClient, tablePrefix: String) = {
     val tableName = dyn.table(tablePrefix)
     db.listTables().getTableNames.contains(tableName)
   }
 }
 
 case class IsTableActive[T](implicit dyn: DynamoObject[T]) extends DbOperation[Boolean]{
-  private[dynamo] def execute(db: AmazonDynamoDBClient, tablePrefix: String) = {
+  private[asyncdynamo] def execute(db: AmazonDynamoDBClient, tablePrefix: String) = {
     val tableName = dyn.table(tablePrefix)
     if (db.listTables().getTableNames.contains(tableName)){
       val status = db.describeTable(new DescribeTableRequest().withTableName(tableName)).getTable.getTableStatus.toUpperCase()
@@ -83,7 +83,7 @@ case class IsTableActive[T](implicit dyn: DynamoObject[T]) extends DbOperation[B
 }
 
 case class DeleteTable[T] (implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
-  private[dynamo] def execute(db: AmazonDynamoDBClient, tablePrefix: String) {
+  private[asyncdynamo] def execute(db: AmazonDynamoDBClient, tablePrefix: String) {
     db.deleteTable(new DeleteTableRequest().withTableName(dyn.table(tablePrefix)))
   }
 }

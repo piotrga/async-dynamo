@@ -1,4 +1,4 @@
-package com.zeebox.dynamo
+package asyncdynamo
 
 import akka.actor.ActorRef
 import akka.util.Timeout

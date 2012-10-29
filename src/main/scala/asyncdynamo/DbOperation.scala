@@ -1,4 +1,4 @@
-package com.zeebox.dynamo
+package asyncdynamo
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDBClient
 import akka.actor.ActorRef
@@ -12,7 +12,7 @@ trait DbOperation[T]{ self =>
   def >>[B](g: => DbOperation[B]): DbOperation[B] = flatMap(_ => g)
   def andThen[B](g: => DbOperation[B]) = >>(g)
 
-  private[dynamo] def execute(db: AmazonDynamoDBClient, tablePrefix:String):T
+  private[asyncdynamo] def execute(db: AmazonDynamoDBClient, tablePrefix:String):T
 
   def blockingExecute(implicit dynamo: ActorRef, timeout:Timeout): T = {
     Await.result(executeOn(dynamo)(timeout), timeout.duration)

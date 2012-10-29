@@ -1,11 +1,13 @@
-package com.zeebox.dynamo
+package asyncdynamo
 
 import nonblocking.{Read, Save}
 import org.scalatest.matchers.MustMatchers
-import org.scalatest.{Suite, BeforeAndAfterAll, FreeSpec}
+import org.scalatest.FreeSpec
 import java.util.UUID
-import akka.util.duration._
-import com.zeebox.dynamo.DynamoTestDataObjects.DynamoTestObject
+import asyncdynamo.DynamoTestObjectSupport
+import asyncdynamo.DynamoTestDataObjects.DynamoTestObject
+import asyncdynamo.nonblocking.Read
+import asyncdynamo.nonblocking.Save
 
 
 class DynamoReaderMonadTest extends FreeSpec with MustMatchers with DynamoTestObjectSupport{

@@ -1,4 +1,4 @@
-package com.zeebox.dynamo
+package asyncdynamo
 
 import akka.actor.{Props, ActorSystem, Actor}
 import com.amazonaws.services.dynamodb.AmazonDynamoDBClient

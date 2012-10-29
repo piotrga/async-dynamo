@@ -1,13 +1,8 @@
-organization := "com.zeebox"
+organization := "asyncdynamo"
 
 name := "async-dynamo"
 
 scalaVersion := "2.9.1"
-
-resolvers ++= Seq(
-        "Nexus Snapshots" at "http://nexus.zeebox.com:8080/nexus/content/groups/public-snapshots",
-        "Nexus" at "http://nexus.zeebox.com:8080/nexus/content/groups/public"
-)
 
 // Libraries
 libraryDependencies ++= Seq(

@@ -1,10 +1,11 @@
-package com.zeebox.dynamo
+package asyncdynamo
 
-import nonblocking._
 import org.scalatest.matchers.MustMatchers
 import org.scalatest.FreeSpec
 import akka.util.duration._
-import akka.dispatch.{Future, Await}
+import asyncdynamo.{DynamoObject, DynamoSupport}
+
+import asyncdynamo.nonblocking.{Read, Save, CreateTable, TableExists}
 
 class DynamoObjectTest extends FreeSpec with MustMatchers with DynamoSupport{
 
