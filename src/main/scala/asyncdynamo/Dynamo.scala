@@ -47,5 +47,5 @@ case class DynamoConfig(
 
 
 
-class ThirdPartyException(msg: String, cause:Throwable) extends RuntimeException(msg, cause)
+class ThirdPartyException(msg: String, cause:Throwable=null) extends RuntimeException(msg, cause)
 

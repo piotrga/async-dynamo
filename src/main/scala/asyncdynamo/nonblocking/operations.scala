@@ -8,7 +8,7 @@ import com.amazonaws.services.dynamodb.model.PutItemRequest
 import com.amazonaws.services.dynamodb.model.ScanRequest
 import com.amazonaws.services.dynamodb.model.DeleteItemRequest
 import com.amazonaws.services.dynamodb.model.Key
-import asyncdynamo.{functional, DynamoObject, DbOperation}
+import asyncdynamo.{ThirdPartyException, functional, DynamoObject, DbOperation}
 import akka.actor.ActorRef
 import akka.util.Timeout
 
@@ -42,10 +42,12 @@ case class ListAll[T](limit : Int)(implicit dyn:DynamoObject[T]) extends DbOpera
 
 case class DeleteAll[T](implicit dyn:DynamoObject[T]) extends DbOperation[Int]{
   def execute(db: AmazonDynamoDBClient, tablePrefix:String) : Int = {
+    if (dyn.range.isDefined) throw new ThirdPartyException("DeleteAll works only for tables without range attribute")
     val res = db.scan(new ScanRequest(dyn.table(tablePrefix)))
     res.getItems.asScala.par.map{ item =>
       val id = item.get(dyn.key.getAttributeName)
-      db.deleteItem( new DeleteItemRequest().withTableName(dyn.table(tablePrefix)).withKey(new Key().withHashKeyElement(id)) )
+      val key = new Key().withHashKeyElement(id)
+      db.deleteItem( new DeleteItemRequest().withTableName(dyn.table(tablePrefix)).withKey(key) )
     }
     res.getCount
   }
@@ -77,20 +79,22 @@ case class DeleteByRange[T](id: String, range: Any, expected: Map[String,String]
   }
 }
 
-case class Query[T](id: String, operator: String, attributes: Seq[String], limit : Int = Int.MaxValue, exclusiveStartKey: Key = null, consistentRead :Boolean = true)(implicit dyn:DynamoObject[T]) extends DbOperation[(Seq[T], Option[Key])]{
+
+case class Query[T](id: String, operator: Option[String], attributes: Seq[String], limit : Int, exclusiveStartKey: Option[Key], consistentRead :Boolean)(implicit dyn:DynamoObject[T]) extends DbOperation[(Seq[T], Option[Key])]{
   def execute(db: AmazonDynamoDBClient, tablePrefix:String) : (Seq[T], Option[Key]) = {
 
-    val condition = new Condition()
-      .withComparisonOperator(operator)
-      .withAttributeValueList(attributes.map(new AttributeValue(_)).asJava)
 
     val query = new QueryRequest()
-      .withTableName(dyn.table(tablePrefix))
-      .withHashKeyValue(new AttributeValue(id))
-      .withRangeKeyCondition(condition)
-      .withExclusiveStartKey(exclusiveStartKey)
-      .withConsistentRead(consistentRead)
-      .withLimit(limit)
+        .withTableName(dyn.table(tablePrefix))
+        .withHashKeyValue(new AttributeValue(id))
+        .withExclusiveStartKey(exclusiveStartKey getOrElse null)
+        .withConsistentRead(consistentRead)
+        .withLimit(limit)
+        .withRangeKeyCondition{ operator map ( operator => new Condition()
+          .withComparisonOperator(operator)
+          .withAttributeValueList(attributes.map(new AttributeValue(_)).asJava)) getOrElse null
+        }
+
 
     val result = db.query(query)
     val items = result.getItems.asScala.map {
@@ -100,14 +104,18 @@ case class Query[T](id: String, operator: String, attributes: Seq[String], limit
     (items, Option(result.getLastEvaluatedKey))
   }
 
-  def blockingStream(implicit dynamo: ActorRef, pageTimeout: Timeout): Stream[T] =
+  def blockingStream(implicit dynamo: ActorRef, pageTimeout: Timeout): Stream[T] = //TODO: use iteratees or some other magic to get rid of this blocking behaviour (Peter G. 31/10/2012)
     functional.unfold[Query[T], Seq[T]](this){
       query =>
         val (resultChunk, lastKey) = query.blockingExecute
         lastKey match{
           case None => (None, resultChunk)
-          case Some(key) => (Some(query.copy(exclusiveStartKey = key)), resultChunk)
+          case key@Some(_) => (Some(query.copy(exclusiveStartKey = key)), resultChunk)
         }
     }.flatten
 }
 
+object Query{
+  def apply[T](id: String, operator: String = null, attributes: Seq[String] = Nil, limit : Int = Int.MaxValue, exclusiveStartKey: Key = null, consistentRead :Boolean = true)(implicit dyn:DynamoObject[T]) :Query[T]=
+    Query(id, Option(operator), attributes, limit, Option(exclusiveStartKey), consistentRead)
+}

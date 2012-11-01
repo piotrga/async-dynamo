@@ -77,6 +77,11 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     Query[DynamoTestWithRangeObject](objs(0).id, "GT", List("0"), limit = 2).blockingStream must (contain(objs(0)) and contain(objs(1)) and contain(objs(2)))
   }
 
+  "Query without range condition returns all elements matching the hash key" in {
+    val objs = givenTestObjectsInDb(3)
+    Query[DynamoTestWithRangeObject](objs(0).id).blockingStream must (contain(objs(0)) and contain(objs(1)) and contain(objs(2)))
+  }
+
   "DeleteByRange" in {
     val objs = givenTestObjectsInDb(3)
     val id = objs(0).id
