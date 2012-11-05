@@ -41,7 +41,7 @@ object Dynamo{
   def apply(config: DynamoConfig, connectionCount: Int) = {
     val system = ActorSystem("Dynamo")
     system.actorOf(Props(new Actor {
-      val router = context.actorOf(Props(new Dynamo(config)).withRouter(RoundRobinRouter(connectionCount)), "DynamoConnection")
+      val router = context.actorOf(Props(new Dynamo(config)).withRouter(RoundRobinRouter(connectionCount).withDispatcher("dynamo-connection-dispatcher")).withDispatcher("dynamo-connection-dispatcher"), "DynamoConnection")
 
       protected def receive = {
         case 'stop =>
