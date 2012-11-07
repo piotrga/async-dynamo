@@ -49,7 +49,7 @@ object DynamoTestDataObjects{
 }
 
 trait DynamoSupport extends BeforeAndAfterAll{ self : Suite =>
-  implicit val dynamo = Dynamo(DynamoConfig(System.getProperty("amazon.accessKey"), System.getProperty("amazon.secret"), tablePrefix = "devng_", System.getProperty("dynamo.url", "https://dynamodb.eu-west-1.amazonaws.com")), connectionCount = 4)
+  implicit val dynamo = Dynamo(DynamoConfig(System.getProperty("amazon.accessKey"), System.getProperty("amazon.secret"), tablePrefix = "devng_", endpointUrl = System.getProperty("dynamo.url", "https://dynamodb.eu-west-1.amazonaws.com" )), connectionCount = 4)
   implicit val timeout = Timeout(10 seconds)
 
   override protected def afterAll() {

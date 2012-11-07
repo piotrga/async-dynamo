@@ -18,12 +18,25 @@ package asyncdynamo
 
 import akka.actor.{Props, ActorSystem, Actor}
 import com.amazonaws.services.dynamodb.AmazonDynamoDBClient
+import com.amazonaws.ClientConfiguration
 import com.amazonaws.auth.BasicAWSCredentials
 import akka.actor.Status.Failure
 import akka.routing.RoundRobinRouter
+import akka.util.duration._
+import akka.util.Duration
 
 class Dynamo(config: DynamoConfig) extends Actor {
-  val db = new AmazonDynamoDBClient(new BasicAWSCredentials(config.accessKey, config.secret))
+
+  val clientConfig = {
+    val c = new ClientConfiguration()
+    c.setMaxConnections(1)
+    c.setMaxErrorRetry(config.maxRetries)
+    c.setConnectionTimeout(config.timeout.toMillis.toInt)
+    c.setSocketTimeout(config.timeout.toMillis.toInt)
+    c
+  }
+
+  val db = new AmazonDynamoDBClient(new BasicAWSCredentials(config.accessKey, config.secret), clientConfig)
   db.setEndpoint(config.endpointUrl)
 
   override def receive = {
@@ -58,7 +71,9 @@ case class DynamoConfig(
                          accessKey : String,
                          secret: String,
                          tablePrefix: String,
-                         endpointUrl: String
+                         endpointUrl: String,
+                         timeout: Duration = 10 seconds,
+                         maxRetries : Int = 3
                          )
 
 
