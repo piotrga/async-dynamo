@@ -29,12 +29,14 @@ import akka.actor.ActorRef
 import akka.util.Timeout
 
 
-case class Save[T : DynamoObject](o : T) extends DbOperation[T]{
+case class Save[T ](o : T)(implicit dyn:DynamoObject[T]) extends DbOperation[T]{
   def execute(db: AmazonDynamoDBClient, tablePrefix:String) : T = {
-    val dyn = implicitly[DynamoObject[T]]
     db.putItem(new PutItemRequest(dyn.table(tablePrefix), dyn.toDynamo(o).asJava))
     o
   }
+
+  override def toString = "Save[%s](%s)" format (dyn.table(""), o)
+
 }
 
 case class Read[T](id:String, consistentRead : Boolean = true)(implicit dyn:DynamoObject[T]) extends DbOperation[Option[T]]{
@@ -46,6 +48,8 @@ case class Read[T](id:String, consistentRead : Boolean = true)(implicit dyn:Dyna
     val attributes = db.getItem(read).getItem
     Option (attributes) map ( attr => dyn.fromDynamo(attr.asScala.toMap) )
   }
+
+  override def toString = "Read[%s](id=%s, consistentRead=%s" format (dyn.table(""), id, consistentRead)
 }
 
 case class ListAll[T](limit : Int)(implicit dyn:DynamoObject[T]) extends DbOperation[Seq[T]]{
@@ -73,6 +77,8 @@ case class DeleteById[T](id: String)(implicit dyn:DynamoObject[T]) extends DbOpe
   def execute(db: AmazonDynamoDBClient, tablePrefix:String){
     db.deleteItem( new DeleteItemRequest().withTableName(dyn.table(tablePrefix)).withKey(new Key().withHashKeyElement(new AttributeValue(id))))
   }
+  override def toString = "DeleteById[%s](%s)" format (dyn.table(""), id)
+
 }
 
 case class DeleteByRange[T](id: String, range: Any, expected: Map[String,String] = Map.empty)(implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
@@ -93,6 +99,10 @@ case class DeleteByRange[T](id: String, range: Any, expected: Map[String,String]
 
     db.deleteItem( request)
   }
+
+  override def toString = "DeleteByRange[%s](%s)" format (dyn.table(""), super.toString)
+
+
 }
 
 

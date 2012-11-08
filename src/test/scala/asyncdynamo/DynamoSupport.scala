@@ -21,7 +21,6 @@ import org.scalatest.{BeforeAndAfterAll, Suite}
 import akka.util.Timeout
 import akka.util.duration._
 import com.amazonaws.services.dynamodb.model.AttributeValue
-import asyncdynamo.Dynamo
 
 object DynamoTestDataObjects{
   case class DynamoTestObject(id:String, someValue:String)

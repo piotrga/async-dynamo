@@ -16,14 +16,15 @@
 
 package asyncdynamo
 
-import akka.actor.{Props, ActorSystem, Actor}
+import akka.actor._
 import com.amazonaws.services.dynamodb.AmazonDynamoDBClient
 import com.amazonaws.ClientConfiguration
 import com.amazonaws.auth.BasicAWSCredentials
-import akka.actor.Status.Failure
 import akka.routing.SmallestMailboxRouter
 import akka.util.duration._
 import akka.util.Duration
+import com.typesafe.config.ConfigFactory
+import akka.actor.Status.Failure
 
 class Dynamo(config: DynamoConfig) extends Actor {
 
@@ -41,24 +42,44 @@ class Dynamo(config: DynamoConfig) extends Actor {
 
   override def receive = {
     case op:DbOperation[_] =>
-      sender ! op.execute(db, config.tablePrefix)
+      try{
+        val (result, duration) = time(op.execute(db, config.tablePrefix))
+        sender ! result
+        context.system.eventStream.publish(OperationExecuted(duration, op))
+      } catch {
+        case ex: Throwable =>
+          context.system.eventStream.publish(OperationFailed(op, ex))
+          throw ex
+      }
   }
 
   override def preRestart(reason: Throwable, message: Option[Any]) {
     super.preRestart(reason, message)
     sender ! Failure(new ThirdPartyException("AmazonDB Error: [%s] while executing [%s]" format (reason.getMessage, message), reason))
   }
+
+  private def time[T](f : => T) :( T, Duration) = {
+    val start = System.currentTimeMillis()
+    val res = f
+    val duration = System.currentTimeMillis() - start
+    (res, duration.millis)
+  }
 }
 
 object Dynamo{
   def apply(config: DynamoConfig, connectionCount: Int) = {
-    val system = ActorSystem("Dynamo")
+    val system = ActorSystem("Dynamo", ConfigFactory.load().getConfig("Dynamo") )
+
     system.actorOf(Props(new Actor {
-      val router = context.actorOf(Props(new Dynamo(config)).withRouter(SmallestMailboxRouter(connectionCount).withDispatcher("dynamo-connection-dispatcher")).withDispatcher("dynamo-connection-dispatcher"), "DynamoConnection")
+      val router = context.actorOf(Props(new Dynamo(config))
+        .withRouter(SmallestMailboxRouter(connectionCount))
+        .withDispatcher("dynamo-connection-dispatcher"), "DynamoConnection")
 
       protected def receive = {
         case 'stop =>
           system.shutdown()
+        case ('addListener, listener : ActorRef) =>
+          system.eventStream.subscribe(listener, classOf[DynamoEvent])
         case msg: DbOperation[_] =>
           router forward msg
         case _ => () // ignore other messages
@@ -80,3 +101,6 @@ case class DynamoConfig(
 
 class ThirdPartyException(msg: String, cause:Throwable=null) extends RuntimeException(msg, cause)
 
+trait DynamoEvent
+case class OperationExecuted(duration:Duration, operation: DbOperation[_]) extends DynamoEvent
+case class OperationFailed(operation: DbOperation[_], reason: Throwable) extends DynamoEvent

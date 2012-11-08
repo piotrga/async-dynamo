@@ -23,13 +23,20 @@ import java.util.UUID
 
 import asyncdynamo.blocking._
 import akka.dispatch.{Await, Future}
-import akka.actor.ActorSystem
+import akka.actor.{Actor, Props, ActorSystem}
 
 
 class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSupport{
   import DynamoTestDataObjects._
 
   implicit val sys = ActorSystem("test")
+  val listener = sys.actorOf(Props(new Actor{
+    protected def receive = {
+      case msg => println("EVENT_STREAM: " + msg)
+    }
+  }))
+
+  dynamo ! ('addListener, listener)
 
   "Save/Get" in {
     assertCanSaveGetObject()
