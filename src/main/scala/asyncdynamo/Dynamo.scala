@@ -25,6 +25,7 @@ import akka.util.duration._
 import akka.util.Duration
 import com.typesafe.config.ConfigFactory
 import akka.actor.Status.Failure
+import com.amazonaws.services.dynamodb.model.ProvisionedThroughputExceededException
 
 class Dynamo(config: DynamoConfig) extends Actor {
 
@@ -47,6 +48,10 @@ class Dynamo(config: DynamoConfig) extends Actor {
         sender ! result
         context.system.eventStream.publish(OperationExecuted(duration, op))
       } catch {
+        case ex: ProvisionedThroughputExceededException =>
+          context.system.eventStream.publish(OperationFailed(op, ex))
+          context.system.eventStream.publish(ProvisionedThroughputExceeded(op))
+          throw ex
         case ex: Throwable =>
           context.system.eventStream.publish(OperationFailed(op, ex))
           throw ex
@@ -104,3 +109,4 @@ class ThirdPartyException(msg: String, cause:Throwable=null) extends RuntimeExce
 trait DynamoEvent
 case class OperationExecuted(duration:Duration, operation: DbOperation[_]) extends DynamoEvent
 case class OperationFailed(operation: DbOperation[_], reason: Throwable) extends DynamoEvent
+case class ProvisionedThroughputExceeded(operation: DbOperation[_]) extends DynamoEvent
