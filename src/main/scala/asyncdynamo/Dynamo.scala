@@ -21,7 +21,7 @@ import com.amazonaws.services.dynamodb.AmazonDynamoDBClient
 import com.amazonaws.ClientConfiguration
 import com.amazonaws.auth.BasicAWSCredentials
 import akka.actor.Status.Failure
-import akka.routing.RoundRobinRouter
+import akka.routing.SmallestMailboxRouter
 import akka.util.duration._
 import akka.util.Duration
 
@@ -54,7 +54,7 @@ object Dynamo{
   def apply(config: DynamoConfig, connectionCount: Int) = {
     val system = ActorSystem("Dynamo")
     system.actorOf(Props(new Actor {
-      val router = context.actorOf(Props(new Dynamo(config)).withRouter(RoundRobinRouter(connectionCount).withDispatcher("dynamo-connection-dispatcher")).withDispatcher("dynamo-connection-dispatcher"), "DynamoConnection")
+      val router = context.actorOf(Props(new Dynamo(config)).withRouter(SmallestMailboxRouter(connectionCount).withDispatcher("dynamo-connection-dispatcher")).withDispatcher("dynamo-connection-dispatcher"), "DynamoConnection")
 
       protected def receive = {
         case 'stop =>
