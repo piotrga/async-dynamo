@@ -21,6 +21,7 @@ import akka.actor.ActorRef
 import akka.util.{Timeout, Duration}
 import akka.dispatch.{Await, Future}
 import akka.pattern.ask
+import com.amazonaws.services.dynamodb.model.ProvisionedThroughputExceededException
 
 object DbOperation{
   val DEBUG = sys.props.get("asyncdynamo.debug")
@@ -37,9 +38,10 @@ abstract class DbOperation[T]{ self =>
   /**
    * This is to make error messages more meaningfull.
    */
-  private[asyncdynamo] def safeExecute(db: AmazonDynamoDBClient, tablePrefix:String):T = try
+  private[asyncdynamo] def safeExecute(db: AmazonDynamoDBClient, tablePrefix:String):T = try{
     execute(db, tablePrefix)
-  catch {
+  }catch {
+    case ex: ProvisionedThroughputExceededException => throw ex
     case ex:Throwable =>
       val additionalInfo = stack map (s => "\nOperation was created here: [\n\t%s\n\t...\n]" format s.mkString("\n\t") ) getOrElse("To see the operation origin please add -Dasyncdynamo.debug system property.")
       throw new ThirdPartyException("AmazonDB Error [%s] while executing [%s]. %s" format (ex.getMessage, this, additionalInfo), ex)

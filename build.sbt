@@ -12,5 +12,6 @@ libraryDependencies ++= Seq(
 
 // Test libraries
 libraryDependencies ++= Seq(
-    "org.scalatest" %% "scalatest" % "1.6.1" % "test"
+    "org.scalatest" %% "scalatest" % "1.6.1" % "test",
+    "log4j" % "log4j" % "1.2.17" % "test"
 )

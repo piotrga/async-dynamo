@@ -33,8 +33,8 @@ class ThrottlingTest extends FreeSpec with MustMatchers{
       System.getProperty("amazon.secret"),
       tablePrefix = "devng_",
       endpointUrl = System.getProperty("dynamo.url", "https://dynamodb.eu-west-1.amazonaws.com" ),
-      maxRetries = 3
-    ), connectionCount = 40)
+      maxRetries = 4
+    ), connectionCount = 10)
   implicit val timeout = Timeout(10 seconds)
   implicit val sys = ActorSystem("test")
 
@@ -44,8 +44,8 @@ class ThrottlingTest extends FreeSpec with MustMatchers{
     }
   })))
 
-  "1k saves + 1 Query" in pendingUntilFixed {
-    val N = 1000
+  "10k saves + 1 Query" ignore {
+    val N = 10000
     val objs = givenTestObjectsInDb(N)
     Query[DynamoTestWithRangeObject](objs(0).id, "GT", List("0")).blockingStream.size must be(N)
   }

@@ -32,7 +32,7 @@ class Dynamo(config: DynamoConfig) extends Actor {
   val clientConfig = {
     val c = new ClientConfiguration()
     c.setMaxConnections(1)
-    c.setMaxErrorRetry(config.maxRetries)
+    c.setMaxErrorRetry(0)
     c.setConnectionTimeout(config.timeout.toMillis.toInt)
     c.setSocketTimeout(config.timeout.toMillis.toInt)
     c
@@ -44,13 +44,13 @@ class Dynamo(config: DynamoConfig) extends Actor {
   override def receive = {
     case op:DbOperation[_] =>
       try{
-        val (result, duration) = time(op.execute(db, config.tablePrefix))
+        val (result, duration) = time(retryIfCapacityExceeded(config.maxRetries, backoffBase = config.backoffBase, op))
         sender ! result
         context.system.eventStream.publish(OperationExecuted(duration, op))
       } catch {
         case ex: ProvisionedThroughputExceededException =>
           context.system.eventStream.publish(OperationFailed(op, ex))
-          context.system.eventStream.publish(ProvisionedThroughputExceeded(op))
+          context.system.eventStream.publish(ProvisionedThroughputExceeded(op, "Giving up"))
           throw ex
         case ex: Throwable =>
           context.system.eventStream.publish(OperationFailed(op, ex))
@@ -69,6 +69,26 @@ class Dynamo(config: DynamoConfig) extends Actor {
     val duration = System.currentTimeMillis() - start
     (res, duration.millis)
   }
+
+  private def retryIfCapacityExceeded[A](maxRetries: Int, backoffBase : Duration, op :DbOperation[A]) : A = {
+    val BASE = backoffBase.toMillis
+    def retry(attempt: Int) : A = {
+      try op.safeExecute(db, config.tablePrefix)
+      catch{
+        case ex: ProvisionedThroughputExceededException =>
+          val pauseMillis = BASE * math.pow(2, attempt).toInt
+          context.system.eventStream.publish(ProvisionedThroughputExceeded(op, "Retrying in [%d] millis. Attempt [%d]" format (pauseMillis, attempt)))
+          Thread.sleep(pauseMillis)
+          if (attempt < maxRetries){
+            retry(attempt+1)
+          }else{
+            op.execute(db, config.tablePrefix)
+          }
+      }
+    }
+    retry(attempt = 1)
+  }
+
 }
 
 object Dynamo{
@@ -99,7 +119,8 @@ case class DynamoConfig(
                          tablePrefix: String,
                          endpointUrl: String,
                          timeout: Duration = 10 seconds,
-                         maxRetries : Int = 3
+                         maxRetries : Int = 3,
+                         backoffBase : Duration = 2 seconds
                          )
 
 
@@ -109,4 +130,4 @@ class ThirdPartyException(msg: String, cause:Throwable=null) extends RuntimeExce
 trait DynamoEvent
 case class OperationExecuted(duration:Duration, operation: DbOperation[_]) extends DynamoEvent
 case class OperationFailed(operation: DbOperation[_], reason: Throwable) extends DynamoEvent
-case class ProvisionedThroughputExceeded(operation: DbOperation[_]) extends DynamoEvent
+case class ProvisionedThroughputExceeded(operation: DbOperation[_], msg:String) extends DynamoEvent
