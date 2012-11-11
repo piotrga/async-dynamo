@@ -18,7 +18,7 @@ package asyncdynamo
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDBClient
 import akka.actor.ActorRef
-import akka.util.{Timeout, Duration}
+import akka.util.{Deadline, Timeout, Duration}
 import akka.dispatch.{Await, Future}
 import akka.pattern.ask
 import com.amazonaws.services.dynamodb.model.ProvisionedThroughputExceededException
@@ -54,6 +54,8 @@ abstract class DbOperation[T]{ self =>
   }
 
   def executeOn(dynamo: ActorRef)(implicit timeout:Timeout): Future[T] = {
-    dynamo.ask(this).map(_.asInstanceOf[T])
+    dynamo ? PendingOperation(this, Deadline.now + timeout.duration) map (_.asInstanceOf[T])
   }
 }
+
+case class PendingOperation[T](operation: DbOperation[T], deadline: Deadline)

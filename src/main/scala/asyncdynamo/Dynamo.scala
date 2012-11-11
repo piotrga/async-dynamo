@@ -32,7 +32,7 @@ class Dynamo(config: DynamoConfig) extends Actor {
   val clientConfig = {
     val c = new ClientConfiguration()
     c.setMaxConnections(1)
-    c.setMaxErrorRetry(0)
+    c.setMaxErrorRetry(config.throttlingRecoveryStrategy.amazonMaxErrorRetry)
     c.setConnectionTimeout(config.timeout.toMillis.toInt)
     c.setSocketTimeout(config.timeout.toMillis.toInt)
     c
@@ -42,20 +42,21 @@ class Dynamo(config: DynamoConfig) extends Actor {
   db.setEndpoint(config.endpointUrl)
 
   override def receive = {
-    case op:DbOperation[_] =>
+    case pending @ PendingOperation(op, deadline) if (deadline.hasTimeLeft()) =>
       try{
-        val (result, duration) = time(retryIfCapacityExceeded(config.maxRetries, backoffBase = config.backoffBase, op))
+        val (result, duration) = time(config.throttlingRecoveryStrategy.onExecute( op.safeExecute(db, config.tablePrefix), pending, context.system ))
         sender ! result
-        context.system.eventStream.publish(OperationExecuted(duration, op))
+        context.system.eventStream publish OperationExecuted(duration, op)
       } catch {
         case ex: ProvisionedThroughputExceededException =>
-          context.system.eventStream.publish(OperationFailed(op, ex))
-          context.system.eventStream.publish(ProvisionedThroughputExceeded(op, "Giving up"))
+          context.system.eventStream publish OperationFailed(op, ex)
+          context.system.eventStream publish ProvisionedThroughputExceeded(op, "Giving up")
           throw ex
         case ex: Throwable =>
-          context.system.eventStream.publish(OperationFailed(op, ex))
+          context.system.eventStream publish OperationFailed(op, ex)
           throw ex
       }
+    case overdue @ PendingOperation(operation, _) => context.system.eventStream publish OperationOverdue(operation)
   }
 
   override def preRestart(reason: Throwable, message: Option[Any]) {
@@ -70,25 +71,6 @@ class Dynamo(config: DynamoConfig) extends Actor {
     (res, duration.millis)
   }
 
-  private def retryIfCapacityExceeded[A](maxRetries: Int, backoffBase : Duration, op :DbOperation[A]) : A = {
-    val BASE = backoffBase.toMillis
-    def retry(attempt: Int) : A = {
-      try op.safeExecute(db, config.tablePrefix)
-      catch{
-        case ex: ProvisionedThroughputExceededException =>
-          val pauseMillis = BASE * math.pow(2, attempt).toInt
-          context.system.eventStream.publish(ProvisionedThroughputExceeded(op, "Retrying in [%d] millis. Attempt [%d]" format (pauseMillis, attempt)))
-          Thread.sleep(pauseMillis)
-          if (attempt < maxRetries){
-            retry(attempt+1)
-          }else{
-            op.execute(db, config.tablePrefix)
-          }
-      }
-    }
-    retry(attempt = 1)
-  }
-
 }
 
 object Dynamo{
@@ -101,12 +83,14 @@ object Dynamo{
         .withDispatcher("dynamo-connection-dispatcher"), "DynamoConnection")
 
       protected def receive = {
+        case overdue @ PendingOperation(op, deadline) if (deadline.isOverdue()) =>
+          system.eventStream publish OperationOverdue(op)
+        case msg: PendingOperation[_] =>
+          router forward msg
         case 'stop =>
           system.shutdown()
         case ('addListener, listener : ActorRef) =>
           system.eventStream.subscribe(listener, classOf[DynamoEvent])
-        case msg: DbOperation[_] =>
-          router forward msg
         case _ => () // ignore other messages
       }
     }), "DynamoClient")
@@ -119,8 +103,7 @@ case class DynamoConfig(
                          tablePrefix: String,
                          endpointUrl: String,
                          timeout: Duration = 10 seconds,
-                         maxRetries : Int = 3,
-                         backoffBase : Duration = 2 seconds
+                         throttlingRecoveryStrategy : ThrottlingRecoveryStrategy = AmazonThrottlingRecoveryStrategy(10)
                          )
 
 
@@ -131,3 +114,38 @@ trait DynamoEvent
 case class OperationExecuted(duration:Duration, operation: DbOperation[_]) extends DynamoEvent
 case class OperationFailed(operation: DbOperation[_], reason: Throwable) extends DynamoEvent
 case class ProvisionedThroughputExceeded(operation: DbOperation[_], msg:String) extends DynamoEvent
+case class OperationOverdue(operation: DbOperation[_]) extends DynamoEvent
+
+trait ThrottlingRecoveryStrategy{
+  def amazonMaxErrorRetry : Int
+  def onExecute[T](f: => T, operation: PendingOperation[T], system : ActorSystem) : T
+}
+
+case class AmazonThrottlingRecoveryStrategy(maxRetries: Int) extends ThrottlingRecoveryStrategy{
+  val amazonMaxErrorRetry = maxRetries
+  def onExecute[T](f: => T, operation: PendingOperation[T], system : ActorSystem) : T = f
+}
+
+case class ExpotentialBackoffThrottlingRecoveryStrategy(maxRetries: Int, backoffBase: Duration) extends  ThrottlingRecoveryStrategy{
+  val amazonMaxErrorRetry = 0
+  lazy val BASE = backoffBase.toMillis
+
+  def onExecute[T](evaluate: => T, operation: PendingOperation[T], system : ActorSystem) : T = {
+
+      def Try(attempt: Int) : T = {
+        try evaluate
+        catch{
+          case ex: ProvisionedThroughputExceededException =>
+            val pauseMillis = BASE * math.pow(2, attempt).toInt
+            system.eventStream publish ProvisionedThroughputExceeded(operation.operation, "Retrying in [%d] millis. Attempt [%d]" format (pauseMillis, attempt))
+            Thread.sleep(pauseMillis)
+            if (attempt < maxRetries) Try(attempt+1) else evaluate
+        }
+      }
+
+      if (maxRetries > 0) Try(attempt = 1) else evaluate
+
+
+  }
+}
+
