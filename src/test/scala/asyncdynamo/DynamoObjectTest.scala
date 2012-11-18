@@ -19,7 +19,6 @@ package asyncdynamo
 import org.scalatest.matchers.MustMatchers
 import org.scalatest.FreeSpec
 import akka.util.duration._
-import asyncdynamo.{DynamoObject, DynamoSupport}
 
 import asyncdynamo.nonblocking.{Read, Save, CreateTable, TableExists}
 

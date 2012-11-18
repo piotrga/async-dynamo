@@ -21,7 +21,6 @@ import org.scalatest.matchers.MustMatchers
 import akka.util.duration._
 import java.util.concurrent.TimeoutException
 import annotation.tailrec
-import asyncdynamo.{DynamoObject, DynamoSupport}
 import asyncdynamo.blocking._
 
 class AdminOperationsTest extends FreeSpec with MustMatchers with DynamoSupport{

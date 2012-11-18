@@ -16,7 +16,7 @@
 
 package asyncdynamo.nonblocking
 
-import com.amazonaws.services.dynamodb.AmazonDynamoDBClient
+import com.amazonaws.services.dynamodb.AmazonDynamoDB
 import com.amazonaws.services.dynamodb.model._
 import akka.dispatch.{Await, Future, Promise}
 import akka.actor.{ActorSystem, ActorRef, Scheduler, Actor}
@@ -25,7 +25,7 @@ import akka.util.duration._
 import asyncdynamo._
 
 case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
-  def execute(db: AmazonDynamoDBClient, tablePrefix:String) {
+  def execute(db: AmazonDynamoDB, tablePrefix:String) {
 
 
     val keySchema = dyn.range match {
@@ -58,14 +58,14 @@ case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(imp
 }
 
 case class TableExists[T](implicit dyn: DynamoObject[T]) extends DbOperation[Boolean]{
-  private[asyncdynamo] def execute(db: AmazonDynamoDBClient, tablePrefix: String) = {
+  private[asyncdynamo] def execute(db: AmazonDynamoDB, tablePrefix: String) = {
     val tableName = dyn.table(tablePrefix)
     db.listTables().getTableNames.contains(tableName)
   }
 }
 
 case class IsTableActive[T](implicit dyn: DynamoObject[T]) extends DbOperation[Boolean]{
-  private[asyncdynamo] def execute(db: AmazonDynamoDBClient, tablePrefix: String) = {
+  private[asyncdynamo] def execute(db: AmazonDynamoDB, tablePrefix: String) = {
     val tableName = dyn.table(tablePrefix)
     if (db.listTables().getTableNames.contains(tableName)){
       val status = db.describeTable(new DescribeTableRequest().withTableName(tableName)).getTable.getTableStatus.toUpperCase()
@@ -99,7 +99,7 @@ case class IsTableActive[T](implicit dyn: DynamoObject[T]) extends DbOperation[B
 }
 
 case class DeleteTable[T] (implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
-  private[asyncdynamo] def execute(db: AmazonDynamoDBClient, tablePrefix: String) {
+  private[asyncdynamo] def execute(db: AmazonDynamoDB, tablePrefix: String) {
     db.deleteTable(new DeleteTableRequest().withTableName(dyn.table(tablePrefix)))
   }
 }

@@ -16,9 +16,9 @@
 
 package asyncdynamo
 
-import com.amazonaws.services.dynamodb.AmazonDynamoDBClient
+import com.amazonaws.services.dynamodb.AmazonDynamoDB
 import akka.actor.ActorRef
-import akka.util.{Deadline, Timeout, Duration}
+import akka.util.{Deadline, Timeout}
 import akka.dispatch.{Await, Future}
 import akka.pattern.ask
 import com.amazonaws.services.dynamodb.model.ProvisionedThroughputExceededException
@@ -30,15 +30,15 @@ object DbOperation{
 abstract class DbOperation[T]{ self =>
   private val stack = try DbOperation.DEBUG map (_ => Thread.currentThread().getStackTrace.drop(7).take(7)) catch { case ex:Throwable => println(ex); None}
 
-  def map[B](g: T => B): DbOperation[B] = (db: AmazonDynamoDBClient, tablePrefix:String) => g(safeExecute(db, tablePrefix))
-  def flatMap[B](g: T => DbOperation[B]): DbOperation[B] = (db: AmazonDynamoDBClient, tablePrefix:String) => g(safeExecute(db, tablePrefix)).safeExecute(db, tablePrefix)
+  def map[B](g: T => B): DbOperation[B] = (db: AmazonDynamoDB, tablePrefix:String) => g(safeExecute(db, tablePrefix))
+  def flatMap[B](g: T => DbOperation[B]): DbOperation[B] = (db: AmazonDynamoDB, tablePrefix:String) => g(safeExecute(db, tablePrefix)).safeExecute(db, tablePrefix)
   def >>[B](g: => DbOperation[B]): DbOperation[B] = flatMap(_ => g)
   def andThen[B](g: => DbOperation[B]) = >>(g)
 
   /**
    * This is to make error messages more meaningfull.
    */
-  private[asyncdynamo] def safeExecute(db: AmazonDynamoDBClient, tablePrefix:String):T = try{
+  private[asyncdynamo] def safeExecute(db: AmazonDynamoDB, tablePrefix:String):T = try{
     execute(db, tablePrefix)
   }catch {
     case ex: ProvisionedThroughputExceededException => throw ex
@@ -47,7 +47,7 @@ abstract class DbOperation[T]{ self =>
       throw new ThirdPartyException("AmazonDB Error [%s] while executing [%s]. %s" format (ex.getMessage, this, additionalInfo), ex)
   }
 
-  private[asyncdynamo] def execute(db: AmazonDynamoDBClient, tablePrefix:String):T
+  private[asyncdynamo] def execute(db: AmazonDynamoDB, tablePrefix:String):T
 
   def blockingExecute(implicit dynamo: ActorRef, timeout:Timeout): T = {
     Await.result(executeOn(dynamo)(timeout), timeout.duration)

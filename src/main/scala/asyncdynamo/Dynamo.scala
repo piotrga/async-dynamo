@@ -24,12 +24,13 @@ import akka.routing.SmallestMailboxRouter
 import akka.util.duration._
 import akka.util.Duration
 import com.typesafe.config.ConfigFactory
+import com.amazonaws.services.dynamodb.model._
 import akka.actor.Status.Failure
-import com.amazonaws.services.dynamodb.model.ProvisionedThroughputExceededException
+import asyncdynamo.Operation.Type
 
 class Dynamo(config: DynamoConfig) extends Actor {
 
-  val clientConfig = {
+  private val clientConfig = {
     val c = new ClientConfiguration()
     c.setMaxConnections(1)
     c.setMaxErrorRetry(config.throttlingRecoveryStrategy.amazonMaxErrorRetry)
@@ -38,7 +39,9 @@ class Dynamo(config: DynamoConfig) extends Actor {
     c
   }
 
-  val db = new AmazonDynamoDBClient(new BasicAWSCredentials(config.accessKey, config.secret), clientConfig)
+  private val delegate = new AmazonDynamoDBClient(new BasicAWSCredentials(config.accessKey, config.secret), clientConfig)
+  private val db = new TracingAmazonDynamoDB(delegate, context.system.eventStream)
+
   db.setEndpoint(config.endpointUrl)
 
   override def receive = {
@@ -74,7 +77,7 @@ class Dynamo(config: DynamoConfig) extends Actor {
 }
 
 object Dynamo{
-  def apply(config: DynamoConfig, connectionCount: Int) = {
+  def apply(config: DynamoConfig, connectionCount: Int) : ActorRef = {
     val system = ActorSystem("Dynamo", ConfigFactory.load().getConfig("Dynamo") )
 
     system.actorOf(Props(new Actor {
@@ -103,7 +106,7 @@ case class DynamoConfig(
                          tablePrefix: String,
                          endpointUrl: String,
                          timeout: Duration = 10 seconds,
-                         throttlingRecoveryStrategy : ThrottlingRecoveryStrategy = AmazonThrottlingRecoveryStrategy(10)
+                         throttlingRecoveryStrategy : ThrottlingRecoveryStrategy = AmazonThrottlingRecoveryStrategy.forTimeout(10 seconds)
                          )
 
 
@@ -111,41 +114,20 @@ case class DynamoConfig(
 class ThirdPartyException(msg: String, cause:Throwable=null) extends RuntimeException(msg, cause)
 
 trait DynamoEvent
+
+case class DynamoRequestExecuted(operation:Operation, readUnits: Double, writeUnits: Double) extends DynamoEvent
 case class OperationExecuted(duration:Duration, operation: DbOperation[_]) extends DynamoEvent
 case class OperationFailed(operation: DbOperation[_], reason: Throwable) extends DynamoEvent
 case class ProvisionedThroughputExceeded(operation: DbOperation[_], msg:String) extends DynamoEvent
 case class OperationOverdue(operation: DbOperation[_]) extends DynamoEvent
 
-trait ThrottlingRecoveryStrategy{
-  def amazonMaxErrorRetry : Int
-  def onExecute[T](f: => T, operation: PendingOperation[T], system : ActorSystem) : T
+object Operation{
+  sealed trait Type
+  case object Read extends Type
+  case object Write extends Type
+  case object Admin extends Type
 }
 
-case class AmazonThrottlingRecoveryStrategy(maxRetries: Int) extends ThrottlingRecoveryStrategy{
-  val amazonMaxErrorRetry = maxRetries
-  def onExecute[T](f: => T, operation: PendingOperation[T], system : ActorSystem) : T = f
-}
+case class Operation(operationType : Type, name : String )
 
-case class ExpotentialBackoffThrottlingRecoveryStrategy(maxRetries: Int, backoffBase: Duration) extends  ThrottlingRecoveryStrategy{
-  val amazonMaxErrorRetry = 0
-  lazy val BASE = backoffBase.toMillis
-
-  def onExecute[T](evaluate: => T, operation: PendingOperation[T], system : ActorSystem) : T = {
-
-      def Try(attempt: Int) : T = {
-        try evaluate
-        catch{
-          case ex: ProvisionedThroughputExceededException =>
-            val pauseMillis = BASE * math.pow(2, attempt).toInt
-            system.eventStream publish ProvisionedThroughputExceeded(operation.operation, "Retrying in [%d] millis. Attempt [%d]" format (pauseMillis, attempt))
-            Thread.sleep(pauseMillis)
-            if (attempt < maxRetries) Try(attempt+1) else evaluate
-        }
-      }
-
-      if (maxRetries > 0) Try(attempt = 1) else evaluate
-
-
-  }
-}
 

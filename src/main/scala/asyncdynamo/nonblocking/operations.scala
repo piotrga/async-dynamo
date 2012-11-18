@@ -18,7 +18,7 @@ package asyncdynamo.nonblocking
 
 import scala.collection.JavaConverters._
 import com.amazonaws.services.dynamodb.model._
-import com.amazonaws.services.dynamodb.AmazonDynamoDBClient
+import com.amazonaws.services.dynamodb.AmazonDynamoDB
 import com.amazonaws.services.dynamodb.model.AttributeValue
 import com.amazonaws.services.dynamodb.model.PutItemRequest
 import com.amazonaws.services.dynamodb.model.ScanRequest
@@ -30,7 +30,7 @@ import akka.util.Timeout
 
 
 case class Save[T ](o : T)(implicit dyn:DynamoObject[T]) extends DbOperation[T]{
-  def execute(db: AmazonDynamoDBClient, tablePrefix:String) : T = {
+  def execute(db: AmazonDynamoDB, tablePrefix:String) : T = {
     db.putItem(new PutItemRequest(dyn.table(tablePrefix), dyn.toDynamo(o).asJava))
     o
   }
@@ -40,7 +40,7 @@ case class Save[T ](o : T)(implicit dyn:DynamoObject[T]) extends DbOperation[T]{
 }
 
 case class Read[T](id:String, consistentRead : Boolean = true)(implicit dyn:DynamoObject[T]) extends DbOperation[Option[T]]{
-  def execute(db: AmazonDynamoDBClient, tablePrefix:String) : Option[T] = {
+  def execute(db: AmazonDynamoDB, tablePrefix:String) : Option[T] = {
 
     val read = new GetItemRequest( dyn.table(tablePrefix), new Key().withHashKeyElement(new AttributeValue(id)))
       .withConsistentRead(consistentRead)
@@ -53,7 +53,7 @@ case class Read[T](id:String, consistentRead : Boolean = true)(implicit dyn:Dyna
 }
 
 case class ListAll[T](limit : Int)(implicit dyn:DynamoObject[T]) extends DbOperation[Seq[T]]{
-  def execute(db: AmazonDynamoDBClient, tablePrefix:String) : Seq[T] = {
+  def execute(db: AmazonDynamoDB, tablePrefix:String) : Seq[T] = {
     db.scan(new ScanRequest(dyn.table(tablePrefix)).withLimit(limit)).getItems.asScala.map {
       item => dyn.fromDynamo(item.asScala.toMap)
     }
@@ -61,7 +61,7 @@ case class ListAll[T](limit : Int)(implicit dyn:DynamoObject[T]) extends DbOpera
 }
 
 case class DeleteAll[T](implicit dyn:DynamoObject[T]) extends DbOperation[Int]{
-  def execute(db: AmazonDynamoDBClient, tablePrefix:String) : Int = {
+  def execute(db: AmazonDynamoDB, tablePrefix:String) : Int = {
     if (dyn.range.isDefined) throw new ThirdPartyException("DeleteAll works only for tables without range attribute")
     val res = db.scan(new ScanRequest(dyn.table(tablePrefix)))
     res.getItems.asScala.par.map{ item =>
@@ -74,7 +74,7 @@ case class DeleteAll[T](implicit dyn:DynamoObject[T]) extends DbOperation[Int]{
 }
 
 case class DeleteById[T](id: String)(implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
-  def execute(db: AmazonDynamoDBClient, tablePrefix:String){
+  def execute(db: AmazonDynamoDB, tablePrefix:String){
     db.deleteItem( new DeleteItemRequest().withTableName(dyn.table(tablePrefix)).withKey(new Key().withHashKeyElement(new AttributeValue(id))))
   }
   override def toString = "DeleteById[%s](%s)" format (dyn.table(""), id)
@@ -82,7 +82,7 @@ case class DeleteById[T](id: String)(implicit dyn:DynamoObject[T]) extends DbOpe
 }
 
 case class DeleteByRange[T](id: String, range: Any, expected: Map[String,String] = Map.empty)(implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
-  def execute(db: AmazonDynamoDBClient, tablePrefix:String){
+  def execute(db: AmazonDynamoDB, tablePrefix:String){
     val rangeAttribute = if (dyn.range.get.getAttributeType == "S")
       new AttributeValue().withS(range.toString)
     else
@@ -107,7 +107,7 @@ case class DeleteByRange[T](id: String, range: Any, expected: Map[String,String]
 
 
 case class Query[T](id: String, operator: Option[String], attributes: Seq[String], limit : Int, exclusiveStartKey: Option[Key], consistentRead :Boolean)(implicit dyn:DynamoObject[T]) extends DbOperation[(Seq[T], Option[Key])]{
-  def execute(db: AmazonDynamoDBClient, tablePrefix:String) : (Seq[T], Option[Key]) = {
+  def execute(db: AmazonDynamoDB, tablePrefix:String) : (Seq[T], Option[Key]) = {
 
 
     val query = new QueryRequest()

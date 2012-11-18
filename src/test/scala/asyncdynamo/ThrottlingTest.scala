@@ -23,63 +23,70 @@ import asyncdynamo.DynamoTestDataObjects.DynamoTestWithRangeObject
 import java.util.UUID
 import akka.dispatch.{Future, Await}
 import akka.util.Timeout
-import akka.actor.{Actor, Props, ActorSystem}
+import akka.actor.{ActorRef, Actor, Props, ActorSystem}
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.{TimeUnit, CountDownLatch}
 
-class ThrottlingTest extends FreeSpec with MustMatchers{
-  import akka.util.duration._
-  implicit val dynamo = Dynamo(
-    DynamoConfig(
-      System.getProperty("amazon.accessKey"),
-      System.getProperty("amazon.secret"),
-      tablePrefix = "devng_",
-      endpointUrl = System.getProperty("dynamo.url", "https://dynamodb.eu-west-1.amazonaws.com" ),
-      throttlingRecoveryStrategy = AmazonThrottlingRecoveryStrategy(10)
-//      throttlingRecoveryStrategy = ExpotentialBackoffThrottlingRecoveryStrategy(maxRetries = 3, backoffBase = 650 millis)
-    ), connectionCount = 30)
-  implicit val timeout = Timeout(33 seconds)
-  implicit val sys = ActorSystem("test")
+object ThrottlingTest extends  App{
+  def main(args : Seq[String]){
+    import akka.util.duration._
+    implicit val dynamo : ActorRef = Dynamo(
+      DynamoConfig(
+        System.getProperty("amazon.accessKey"),
+        System.getProperty("amazon.secret"),
+        tablePrefix = "devng_",
+        endpointUrl = System.getProperty("dynamo.url", "https://dynamodb.eu-west-1.amazonaws.com" ),
+        throttlingRecoveryStrategy = AmazonThrottlingRecoveryStrategy(4)
+        //      throttlingRecoveryStrategy = ExpotentialBackoffThrottlingRecoveryStrategy(maxRetries = 3, backoffBase = 650 millis)
+      ), connectionCount = 30)
+    implicit val timeout = Timeout(33 seconds)
+    implicit val sys = ActorSystem("test")
 
-  dynamo ! ('addListener, sys.actorOf(Props(new Actor{
-    protected def receive = {
-      case msg:ProvisionedThroughputExceeded => println("EVENT_STREAM: " + msg)
-    }
-  })))
+    dynamo ! ('addListener, sys.actorOf(Props( new Actor {
+      def receive = {
+        case msg: ProvisionedThroughputExceeded =>
+          context.system.log.warning(msg.toString())
+      }})))
 
-  val successCount = new AtomicInteger(0)
-  val failureCount = new AtomicInteger(0)
+    //  dynamo ! ('addListener, sys.actorOf(Props(new Actor{
+    //    protected def receive = {
+    //      case msg:ProvisionedThroughputExceeded => println("EVENT_STREAM: " + msg)
+    //    }
+    //  })))
 
-  "10k saves + 1 Query" ignore {
-    val N = 1200
+    val successCount = new AtomicInteger(0)
+    val failureCount = new AtomicInteger(0)
+
+    val N = 12000
     val id = UUID.randomUUID().toString
-    givenTestObjectsInDb(id, N)
-    Query[DynamoTestWithRangeObject](id, "GT", List("0")).blockingStream.size must be(N)
-  }
+    createTestObjectsInDb(id, N)
+    assert (Query[DynamoTestWithRangeObject](id, "GT", List("0")).blockingStream.size == N )
 
 
-  private def givenTestObjectsInDb(id : String, n: Int)  {
+    def createTestObjectsInDb(id : String, n: Int)  {
 
-    val finished = new CountDownLatch(n)
-    val evener = (30 seconds) / n
-    (1 to n) map {
-      i =>
-        nonblocking.Save(DynamoTestWithRangeObject(id, i.toString , "value "+i)).executeOn(dynamo)(10 seconds)
-        .onSuccess{ case _ => successCount.incrementAndGet() }
-        .onFailure { case _ => failureCount.incrementAndGet() }
-        .onComplete{_ =>
-          finished.countDown()
-          if (finished.getCount % 50 == 0)
-            println("Success count = [%d], Failure count = [%d]"  format (successCount.get(), failureCount.get))
-        }
-        Thread.sleep(evener toMillis)
+      val finished = new CountDownLatch(n)
+      val evener = (30 seconds) / n
+      (1 to n) map {
+        i =>
+          nonblocking.Save(DynamoTestWithRangeObject(id, i.toString , "value "+i)).executeOn(dynamo)(10 seconds)
+            .onSuccess{ case _ => successCount.incrementAndGet() }
+            .onFailure { case _ => failureCount.incrementAndGet() }
+            .onComplete{_ =>
+            finished.countDown()
+            if (finished.getCount % 50 == 0)
+              println("Success count = [%d], Failure count = [%d]"  format (successCount.get(), failureCount.get))
+          }
+          Thread.sleep(evener toMillis)
+      }
+
+
+      finished.await(n* 10,  TimeUnit.SECONDS)
+      println("FINAL: Success count = [%d], Failure count = [%d]"  format (successCount.get(), failureCount.get))
+
     }
 
 
-    finished.await(n* 10,  TimeUnit.SECONDS)
-    println("FINAL: Success count = [%d], Failure count = [%d]"  format (successCount.get(), failureCount.get))
-
   }
-
 
 }
