@@ -16,6 +16,7 @@
 
 package asyncdynamo
 
+import functional.Done
 import nonblocking.Query
 import org.scalatest.matchers.MustMatchers
 import org.scalatest.FreeSpec
@@ -93,6 +94,20 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     val N = 150
     val objs = givenTestObjectsInDb(N)
     Query[DynamoTestWithRangeObject](objs(0).id, "GT", List("0")).blockingStream.size must be(N)
+  }
+
+  "Query iteratee" in {
+    import asyncdynamo.functional.Iteratee._
+    import asyncdynamo._
+    val N = 5
+    val objs = givenTestObjectsInDb(N)
+    val it = Await.result(Query[DynamoTestWithRangeObject](objs(0).id, "GT", List("0")).run(takeAll()), 5 seconds)
+
+    it match {
+      case Done(list)=> list.size must be(N)
+      case x@_ => fail("Expected done but got " +x)
+    }
+
   }
 
   "Query honours limit parameter" in {

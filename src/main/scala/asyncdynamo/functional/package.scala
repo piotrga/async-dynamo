@@ -41,7 +41,7 @@ package object functional {
    * @return stream of elements, ie. for paging it will be Stream[ Seq[A] ], so if you flatten it you will get Stream[A].
    *
    */
-  def unfold[STATE, ELEMENT](initial: STATE)(f : STATE => (Option[STATE], ELEMENT)) : Stream[ELEMENT] = {
+  def unfold[STATE, ELEMENT](initial: STATE)(f: STATE => (Option[STATE], ELEMENT)): Stream[ELEMENT] = {
     (f(initial) match {
       case (Some(s), batch) => Stream.cons(batch, unfold(s)(f))
       case (None, list) => Stream(list)

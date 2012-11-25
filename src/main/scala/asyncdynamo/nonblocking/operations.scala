@@ -25,8 +25,11 @@ import com.amazonaws.services.dynamodb.model.ScanRequest
 import com.amazonaws.services.dynamodb.model.DeleteItemRequest
 import com.amazonaws.services.dynamodb.model.Key
 import asyncdynamo.{ThirdPartyException, functional, DynamoObject, DbOperation}
-import akka.actor.ActorRef
+import akka.actor.{ActorSystem, ActorRef}
 import akka.util.Timeout
+import asyncdynamo.functional._
+import asyncdynamo.functional.Iteratee._
+import akka.dispatch.{Promise, Future}
 
 
 case class Save[T ](o : T)(implicit dyn:DynamoObject[T]) extends DbOperation[T]{
@@ -111,15 +114,15 @@ case class Query[T](id: String, operator: Option[String], attributes: Seq[String
 
 
     val query = new QueryRequest()
-        .withTableName(dyn.table(tablePrefix))
-        .withHashKeyValue(new AttributeValue(id))
-        .withExclusiveStartKey(exclusiveStartKey getOrElse null)
-        .withConsistentRead(consistentRead)
-        .withLimit(limit)
-        .withRangeKeyCondition{ operator map ( operator => new Condition()
-          .withComparisonOperator(operator)
-          .withAttributeValueList(attributes.map(new AttributeValue(_)).asJava)) getOrElse null
-        }
+      .withTableName(dyn.table(tablePrefix))
+      .withHashKeyValue(new AttributeValue(id))
+      .withExclusiveStartKey(exclusiveStartKey getOrElse null)
+      .withConsistentRead(consistentRead)
+      .withLimit(limit)
+      .withRangeKeyCondition{ operator map ( operator => new Condition()
+      .withComparisonOperator(operator)
+      .withAttributeValueList(attributes.map(new AttributeValue(_)).asJava)) getOrElse null
+    }
 
 
     val result = db.query(query)
@@ -139,6 +142,16 @@ case class Query[T](id: String, operator: Option[String], attributes: Seq[String
           case key@Some(_) => (Some(query.copy(exclusiveStartKey = key)), resultChunk)
         }
     }.flatten
+
+
+  def run[A](iter:Iteratee[T,A])(implicit dynamo: ActorRef, pageTimeout: Timeout, system :ActorSystem) : Future[Iteratee[T,A]] = {
+
+    def nextBatch(token : Option[Key]) = this.copy(exclusiveStartKey = token).executeOn(dynamo)(pageTimeout)
+
+    pageAsynchronously2(nextBatch, iter)(new {def apply[X]()= Promise[X]()})
+  }
+
+
 }
 
 object Query{
