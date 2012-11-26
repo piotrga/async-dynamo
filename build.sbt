@@ -5,7 +5,7 @@ name := "async-dynamo"
 scalaVersion := "2.9.2"
 
 //resolvers += Resolver.file("piotrga", file(sys.env("PIOTRGA_GITHUB_REPO")))
-resolvers += "piotrga" at "https://raw.github.com/piotrga/piotrga.github.com/master/maven-repo"
+resolvers += "piotrga-remote" at "https://raw.github.com/piotrga/piotrga.github.com/master/maven-repo"
 
 // Libraries
 libraryDependencies ++= Seq(
