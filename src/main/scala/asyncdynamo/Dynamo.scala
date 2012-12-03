@@ -115,7 +115,7 @@ class ThirdPartyException(msg: String, cause:Throwable=null) extends RuntimeExce
 
 trait DynamoEvent
 
-case class DynamoRequestExecuted(operation:Operation, readUnits: Double = 0 , writeUnits: Double =0, time : Long = System.currentTimeMillis()) extends DynamoEvent
+case class DynamoRequestExecuted(operation:Operation, readUnits: Double = 0 , writeUnits: Double =0, time : Long = System.currentTimeMillis(), duration : Long) extends DynamoEvent
 case class OperationExecuted(duration:Duration, operation: DbOperation[_]) extends DynamoEvent
 case class OperationFailed(operation: DbOperation[_], reason: Throwable) extends DynamoEvent
 case class ProvisionedThroughputExceeded(operation: DbOperation[_], msg:String) extends DynamoEvent
