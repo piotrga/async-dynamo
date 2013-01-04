@@ -130,4 +130,4 @@ In order to release a new version:
  - confirm or amend the release version
  - confirm next development version
 
-[user_guide]: async-dynamo/blob/master/doc/user_guide.md "User Guide"
+[user_guide]: doc/user_guide.md "User Guide"
