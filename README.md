@@ -75,6 +75,11 @@ If you need more flexibility when mapping your object to Dynamo table you can de
             Account( f("id").getS, f("balance").getS.toDouble, formatter.parse(f("lastModified").getS) )
     }
 ```
+
+Documentation
+=============
+For detailed information please read [User Guide][user_guide].
+
 Information for developers
 ==========================
 
