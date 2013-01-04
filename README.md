@@ -14,7 +14,7 @@ Add the following to your build.sbt file:
 ```scala
 resolvers += "piotrga" at "https://github.com/piotrga/piotrga.github.com/tree/master/maven-repo"
 
-libraryDependencies += "asyncdynamo" % "async-dynamo" % "1.1.0"
+libraryDependencies += "asyncdynamo" % "async-dynamo" % "1.5.2"
 ```
 
 Example
