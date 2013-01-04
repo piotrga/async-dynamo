@@ -6,8 +6,6 @@ Quick Start
 ===========
 For detailed information please read [User Guide][user_guide].
 
-[user_guide]: async-dynamo/blob/master/doc/user_guide.md "User Guide"
-
 SBT
 ---
 Add the following to your build.sbt file:
@@ -131,3 +129,5 @@ In order to release a new version:
  - run `sbt release`
  - confirm or amend the release version
  - confirm next development version
+
+[user_guide]: async-dynamo/blob/master/doc/user_guide.md "User Guide"
