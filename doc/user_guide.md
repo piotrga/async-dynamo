@@ -146,6 +146,8 @@ Read[Person]("123") executeOn dynamo onSuccess { case p => println(p) }
 import blocking._
 println(Read[Person]("123"))
 ```
+### Querying by range
+TBD...
 
 ### Deleting object
 ```scala

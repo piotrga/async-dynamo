@@ -1,12 +1,10 @@
 What is async-dynamo?
 =====================
-async-dynamo is asynchronous client for Amazon Dynamo database. It is based on Akka library and provides asynchronous API.
+async-dynamo is an asynchronous scala client for Amazon Dynamo database. It is based on Akka library and provides asynchronous API.
 
 Quick Start
 ===========
 For detailed information please read [User Guide][user_guide].
-
-[user_guide]: async-dynamo/blob/master/doc/user_guide.md "User Guide"
 
 SBT
 ---
@@ -14,7 +12,7 @@ Add the following to your build.sbt file:
 ```scala
 resolvers += "piotrga" at "https://github.com/piotrga/piotrga.github.com/tree/master/maven-repo"
 
-libraryDependencies += "asyncdynamo" % "async-dynamo" % "1.1.0"
+libraryDependencies += "asyncdynamo" % "async-dynamo" % "1.5.2"
 ```
 
 Example
@@ -75,6 +73,11 @@ If you need more flexibility when mapping your object to Dynamo table you can de
             Account( f("id").getS, f("balance").getS.toDouble, formatter.parse(f("lastModified").getS) )
     }
 ```
+
+Documentation
+=============
+For detailed information please read [User Guide][user_guide].
+
 Information for developers
 ==========================
 
@@ -126,3 +129,5 @@ In order to release a new version:
  - run `sbt release`
  - confirm or amend the release version
  - confirm next development version
+
+[user_guide]: doc/user_guide.md "User Guide"
