@@ -19,7 +19,10 @@ package asyncdynamo
 import com.amazonaws.services.dynamodb.model.{KeySchemaElement, AttributeValue}
 
 trait DynamoObject[T]{
-  protected implicit def toAttribute(value : String) = new AttributeValue().withS(value)
+
+  protected implicit def toS(value : String) = new AttributeValue().withS(value)
+  protected def toN[A: Numeric](number: A) =  new AttributeValue().withN(number.toString)
+
   protected def key(attrName:String, attrType: String) = new KeySchemaElement().withAttributeName(attrName).withAttributeType(attrType)
 
   protected def table : String
@@ -28,6 +31,13 @@ trait DynamoObject[T]{
   def table(prefix: String): String = prefix + table
   def key: KeySchemaElement = key("id", "S")
   def range: Option[KeySchemaElement] = None
+
+  def asRangeAttribute(v: Any) : AttributeValue = range.getOrElse(sys.error("This table doesn't have range attribute")).getAttributeType match {
+      case "S" => new AttributeValue().withS(v.toString)
+      case "N" => new AttributeValue().withN(v.toString)
+      case aType => sys.error("Not supported range attribute type [%s]" format aType)
+  }
+
 }
 
 object DynamoObject {
@@ -58,7 +68,7 @@ object DynamoObject {
 
 
     new DynamoObject[T] {
-      def fromDynamo(attributes: Map[String, AttributeValue]) = construct(names.zipWithIndex.map{ case (name, i) => attributes.get(name).map(_.getS).getOrElse(null)})
+      def fromDynamo(attributes: Map[String, AttributeValue]) = construct(names.map{ name => attributes.get(name).map(_.getS).getOrElse(null)})
       def toDynamo(t: T) = names.zipWithIndex.filter{ case(name,i) => t.productElement(i) != null }.map {case (name, i) => (name, new AttributeValue().withS(t.productElement(i).toString))}.toMap
 
       override def key = key(keyName, "S")

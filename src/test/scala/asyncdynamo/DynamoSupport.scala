@@ -39,6 +39,14 @@ object DynamoTestDataObjects{
     override val range = Some(key("rangeValue", "S"))
   }
 
+  case class DynamoTestWithNumericRangeObject(id:String, rangeValue:Int, otherValue: String)
+  implicit object DynamoTestWithNumericRangeObjectDO extends DynamoObject[DynamoTestWithNumericRangeObject]{
+    def toDynamo(t: DynamoTestWithNumericRangeObject) = Map("id"->t.id, "rangeValue"->toN(t.rangeValue), "otherValue" -> t.otherValue)
+    def fromDynamo(a: Map[String, AttributeValue]) = DynamoTestWithNumericRangeObject(a("id").getS, a("rangeValue").getN.toInt, a("otherValue").getS)
+    protected val table = "%s_dynamotest_with_numeric_range" format Option(System.getenv("USER")).getOrElse("unknown")
+    override val range = Some(key("rangeValue", "N"))
+  }
+
   case class Broken(id:String)
   implicit object BrokenDO extends DynamoObject[Broken]{
     def toDynamo(t: Broken) = Map()
@@ -57,16 +65,20 @@ trait DynamoSupport extends BeforeAndAfterAll{ self : Suite =>
   }
 }
 
-trait DynamoTestObjectSupport extends BeforeAndAfterAll with DynamoSupport{ self : Suite =>
+trait DynamoTestObjectSupport extends DynamoSupport{ self : Suite =>
   import DynamoTestDataObjects._
 
-  override protected def beforeAll() {
-    super.beforeAll()
+  protected def createTables() {
+    println("Creating test tables... It might take a while...")
     if (!TableExists[DynamoTestObject]().blockingExecute){
       CreateTable[DynamoTestObject]().blockingExecute(dynamo,1 minute)
     }
     if (!TableExists[DynamoTestWithRangeObject]().blockingExecute){
       CreateTable[DynamoTestWithRangeObject](100, 100).blockingExecute(dynamo,1 minute)
+    }
+
+    if (!TableExists[DynamoTestWithNumericRangeObject]().blockingExecute){
+      CreateTable[DynamoTestWithNumericRangeObject](100, 100).blockingExecute(dynamo,1 minute)
     }
   }
 }

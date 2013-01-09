@@ -109,7 +109,7 @@ case class DeleteByRange[T](id: String, range: Any, expected: Map[String,String]
 }
 
 
-case class Query[T](id: String, operator: Option[String], attributes: Seq[String], limit : Int, exclusiveStartKey: Option[Key], consistentRead :Boolean)(implicit dyn:DynamoObject[T]) extends DbOperation[(Seq[T], Option[Key])]{
+case class Query[T](id: String, operator: Option[String], attributes: Seq[Any], limit : Int, exclusiveStartKey: Option[Key], consistentRead :Boolean)(implicit dyn:DynamoObject[T]) extends DbOperation[(Seq[T], Option[Key])]{
   def execute(db: AmazonDynamoDB, tablePrefix:String) : (Seq[T], Option[Key]) = {
 
 
@@ -121,7 +121,7 @@ case class Query[T](id: String, operator: Option[String], attributes: Seq[String
       .withLimit(limit)
       .withRangeKeyCondition{ operator map ( operator => new Condition()
       .withComparisonOperator(operator)
-      .withAttributeValueList(attributes.map(new AttributeValue(_)).asJava)) getOrElse null
+      .withAttributeValueList(attributes.map(dyn.asRangeAttribute).asJava)) getOrElse null
     }
 
 
@@ -155,6 +155,6 @@ case class Query[T](id: String, operator: Option[String], attributes: Seq[String
 }
 
 object Query{
-  def apply[T](id: String, operator: String = null, attributes: Seq[String] = Nil, limit : Int = Int.MaxValue, exclusiveStartKey: Key = null, consistentRead :Boolean = true)(implicit dyn:DynamoObject[T]) :Query[T]=
+  def apply[T](id: String, operator: String = null, attributes: Seq[Any] = Nil, limit : Int = Int.MaxValue, exclusiveStartKey: Key = null, consistentRead :Boolean = true)(implicit dyn:DynamoObject[T]) :Query[T]=
     Query(id, Option(operator), attributes, limit, Option(exclusiveStartKey), consistentRead)
 }

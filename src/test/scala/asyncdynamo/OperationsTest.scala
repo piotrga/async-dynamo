@@ -17,7 +17,7 @@
 package asyncdynamo
 
 import functional.Done
-import nonblocking.Query
+import nonblocking.{CreateTable, Query}
 import org.scalatest.matchers.MustMatchers
 import org.scalatest.FreeSpec
 import java.util.UUID
@@ -38,6 +38,7 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
   }))
 
   dynamo ! ('addListener, listener)
+  createTables()
 
   "Save/Get" in {
     assertCanSaveGetObject()
@@ -114,6 +115,24 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     val objs = givenTestObjectsInDb(3)
     Query[DynamoTestWithRangeObject](objs(0).id, "GT", List("0"), limit = 2).blockingStream must (contain(objs(0)) and contain(objs(1)) and contain(objs(2)))
   }
+
+  {
+    val id = UUID.randomUUID().toString
+    blocking.Save(DynamoTestWithNumericRangeObject(id, 100 , "value 100"))
+    blocking.Save(DynamoTestWithNumericRangeObject(id, 50 , "value 50"))
+
+    def query(from:Int, to:Int) = Query[DynamoTestWithNumericRangeObject](id, "BETWEEN", Seq(from, to)).blockingStream.toSeq
+
+    "Query works with numeric range" in {
+      query( 0, 150).size must be(2)
+      query( 0,  55).size must be(1)
+      query(60, 150).size must be(1)
+    }
+
+    "Query from is inclusive" in { query( 50, 51).size must be(1)}
+    "Query to is inclusive" in { query( 0, 50).size must be(1)}
+  }
+
 
   "Query without range condition returns all elements matching the hash key" in {
     val objs = givenTestObjectsInDb(3)
