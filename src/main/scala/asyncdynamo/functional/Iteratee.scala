@@ -10,6 +10,14 @@ sealed trait Iteratee[E, A]{
     case Done(res) => Done[B,A](res)
     case Error(cause, partiallyGatheredState) => Error[B,A](cause, partiallyGatheredState.map(g))
   }
+
+  def withFilter(f : E => Boolean) : Iteratee[E,A] = this match{
+    case Cont(g) => Cont((i:Input[E]) => (i match{
+      case Elem(e) => if (f(e)) g(i) else this
+      case _ => g(i)
+    }).withFilter(f))
+    case x => x
+  }
 }
 
 case class Cont[E, A](f: Input[E] => Iteratee[E, A]) extends Iteratee[E, A]
@@ -29,7 +37,7 @@ case class Elem[E](elem: E) extends Input[E]
 object Iteratee{
 
   @tailrec
-  def enumerate[E,A](list: Seq[E], iter: Iteratee[E, A]) : Iteratee[E, A] =
+  def enumerate[E,A](list: List[E], iter: Iteratee[E, A]) : Iteratee[E, A] =
     iter match {
       case Cont(f) =>  list match {
         case h::t => enumerate(t, f(Elem(h)))
