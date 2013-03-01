@@ -18,7 +18,7 @@ package asyncdynamo
 
 import org.scalatest.FreeSpec
 import org.scalatest.matchers.MustMatchers
-import akka.util.duration._
+import scala.concurrent.duration._
 import java.util.concurrent.TimeoutException
 import annotation.tailrec
 import asyncdynamo.blocking._

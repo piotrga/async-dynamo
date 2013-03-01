@@ -19,7 +19,7 @@ package asyncdynamo
 import nonblocking.{CreateTable, TableExists}
 import org.scalatest.{BeforeAndAfterAll, Suite}
 import akka.util.Timeout
-import akka.util.duration._
+import scala.concurrent.duration._
 import com.amazonaws.services.dynamodb.model.AttributeValue
 
 object DynamoTestDataObjects{

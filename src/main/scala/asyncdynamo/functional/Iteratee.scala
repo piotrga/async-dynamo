@@ -1,7 +1,8 @@
 package asyncdynamo.functional
 
 import annotation.tailrec
-import akka.dispatch.{Promise, Future}
+import concurrent.{ExecutionContext, Promise, Future}
+import util.{Try, Failure, Success}
 
 
 sealed trait Iteratee[E, A]{
@@ -75,10 +76,12 @@ object Iteratee{
     case Error(e, s) => Error(e, unbatch(s))
   }
 
-  def pageAsynchronously2[KEY, ELEM, RESULT](nextBatch: Option[KEY] => Future[(Seq[ELEM], Option[KEY])], iter: Iteratee[ELEM, RESULT])(implicit promise: {def apply[T](): Promise[T]}): Future[Iteratee[ELEM, RESULT]] =
+  def pageAsynchronously2[KEY, ELEM, RESULT](nextBatch: Option[KEY] => Future[(Seq[ELEM], Option[KEY])], iter: Iteratee[ELEM, RESULT])
+                                            (implicit promise: {def apply[T](): Promise[T]}, execCtx :ExecutionContext): Future[Iteratee[ELEM, RESULT]] =
     pageAsynchronously(nextBatch, batch(iter)) map unbatch
 
-  def pageAsynchronously[KEY, ELEM, RESULT](nextBatch: Option[KEY] => Future[(Seq[ELEM], Option[KEY])], iter: Iteratee[Seq[ELEM], RESULT])(implicit promise: {def apply[T](): Promise[T]}): Future[Iteratee[Seq[ELEM], RESULT]] = {
+  def pageAsynchronously[KEY, ELEM, RESULT](nextBatch: Option[KEY] => Future[(Seq[ELEM], Option[KEY])], iter: Iteratee[Seq[ELEM], RESULT])
+                                           (implicit promise: {def apply[T](): Promise[T]}, execCtx :ExecutionContext): Future[Iteratee[Seq[ELEM], RESULT]] = {
     val res = promise[Iteratee[Seq[ELEM], RESULT]]()
 
     iter match {
@@ -87,24 +90,24 @@ object Iteratee{
     }
 
 
-    def doIterationStep(iter: Cont[Seq[ELEM], RESULT])(queryResult: Either[Throwable, (Seq[ELEM], Option[KEY])]) {
+    def doIterationStep(iter: Cont[Seq[ELEM], RESULT])(queryResult: Try[(Seq[ELEM], Option[KEY])]) {
       queryResult match {
-        case Right((batch, None)) =>
+        case Success((batch, None)) =>
           iter.f(Elem(batch)) match {
             case Cont(f) => res.success(f(EOI[Seq[ELEM]]()))
             case other => res.success(other)
           }
-        case Right((batch, lastKey@Some(_))) =>
+        case Success((batch, lastKey@Some(_))) =>
           iter.f(Elem(batch)) match {
             case cont@Cont(_) => nextBatch(lastKey) onComplete doIterationStep(cont)
             case other => res.success(other)
           }
-        case Left(error) =>
+        case Failure(error) =>
           res.success(Error(error, iter.f(EOI(Some(error)))))
       }
     }
 
-    res
+    res.future
   }
 
   def takeAll[E]() : Iteratee[E, List[E]] = {

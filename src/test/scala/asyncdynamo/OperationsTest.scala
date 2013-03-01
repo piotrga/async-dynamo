@@ -23,8 +23,9 @@ import org.scalatest.FreeSpec
 import java.util.UUID
 
 import asyncdynamo.blocking._
-import akka.dispatch.{Await, Future}
 import akka.actor.{Actor, Props, ActorSystem}
+import concurrent.{Future, Await}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 
 class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSupport{
@@ -32,7 +33,7 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
 
   implicit val sys = ActorSystem("test")
   val listener = sys.actorOf(Props(new Actor{
-    protected def receive = {
+     def receive = {
       case msg => println("EVENT_STREAM: " + msg)
     }
   }))
@@ -82,7 +83,7 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     Query[DynamoTestWithRangeObject](id, "GT", List("1")).blockingStream must (contain(obj2) and not(contain(obj1)) )
   }
 
-  import akka.util.duration._
+  import scala.concurrent.duration._
   private def givenTestObjectsInDb(n: Int) : Seq[DynamoTestWithRangeObject] = {
     val id = UUID.randomUUID().toString
     Await.result(

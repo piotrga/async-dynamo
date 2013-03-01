@@ -79,4 +79,11 @@ private class TracingAmazonDynamoDB(delegate  : AmazonDynamoDB, eventStream : Ev
     (res, System.currentTimeMillis() - start)
   }
 
+  def batchWriteItem(batchWriteItemRequest: BatchWriteItemRequest) = {
+    val (res, duration) = time(delegate.batchWriteItem(batchWriteItemRequest))
+    res.getResponses foreach {case (tableName, r) =>
+      pub(DynamoRequestExecuted(Operation(tableName, Write, "BatchWriteItem"), writeUnits = r.getConsumedCapacityUnits.toDouble, duration = duration))
+    }
+    res
+  }
 }

@@ -17,19 +17,19 @@
 package asyncdynamo
 
 import nonblocking.Query
-import org.scalatest.matchers.MustMatchers
-import org.scalatest.FreeSpec
 import asyncdynamo.DynamoTestDataObjects.DynamoTestWithRangeObject
 import java.util.UUID
-import akka.dispatch.{Future, Await}
 import akka.util.Timeout
 import akka.actor.{ActorRef, Actor, Props, ActorSystem}
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.{TimeUnit, CountDownLatch}
+import util.{Success, Failure}
+import scala.concurrent.ExecutionContext.Implicits.global
+
 
 object ThrottlingTest extends  App{
   def main(args : Seq[String]){
-    import akka.util.duration._
+    import scala.concurrent.duration._
     implicit val dynamo : ActorRef = Dynamo(
       DynamoConfig(
         System.getProperty("amazon.accessKey"),
@@ -70,8 +70,10 @@ object ThrottlingTest extends  App{
       (1 to n) map {
         i =>
           nonblocking.Save(DynamoTestWithRangeObject(id, i.toString , "value "+i)).executeOn(dynamo)(10 seconds)
-            .onSuccess{ case _ => successCount.incrementAndGet() }
-            .onFailure { case _ => failureCount.incrementAndGet() }
+            .andThen{
+              case Success(_) => successCount.incrementAndGet()
+              case Failure(_) => failureCount.incrementAndGet()
+            }
             .onComplete{_ =>
             finished.countDown()
             if (finished.getCount % 50 == 0)

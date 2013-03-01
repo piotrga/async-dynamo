@@ -29,7 +29,8 @@ import akka.actor.{ActorSystem, ActorRef}
 import akka.util.Timeout
 import asyncdynamo.functional._
 import asyncdynamo.functional.Iteratee._
-import akka.dispatch.{Promise, Future}
+import concurrent.{ExecutionContext, Future, Promise}
+import reflect.ClassTag
 
 
 case class Save[T ](o : T)(implicit dyn:DynamoObject[T]) extends DbOperation[T]{
@@ -144,11 +145,11 @@ case class Query[T](id: String, operator: Option[String], attributes: Seq[Any], 
     }.flatten
 
 
-  def run[A](iter:Iteratee[T,A])(implicit dynamo: ActorRef, pageTimeout: Timeout, system :ActorSystem) : Future[Iteratee[T,A]] = {
+  def run[A](iter:Iteratee[T,A])(implicit dynamo: ActorRef, pageTimeout: Timeout, execCtx :ExecutionContext) : Future[Iteratee[T,A]] = {
 
     def nextBatch(token : Option[Key]) = this.copy(exclusiveStartKey = token).executeOn(dynamo)(pageTimeout)
 
-    pageAsynchronously2(nextBatch, iter)(new {def apply[X]()= Promise[X]()})
+    pageAsynchronously2(nextBatch, iter)(new {def apply[X]()= Promise[X]()}, execCtx)
   }
 
 

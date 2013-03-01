@@ -1,8 +1,8 @@
 package asyncdynamo
 
 import akka.actor.ActorSystem
-import akka.util.Duration
 import com.amazonaws.services.dynamodb.model.ProvisionedThroughputExceededException
+import concurrent.duration.FiniteDuration
 
 trait ThrottlingRecoveryStrategy{
   def amazonMaxErrorRetry : Int
@@ -10,7 +10,7 @@ trait ThrottlingRecoveryStrategy{
 }
 
 object AmazonThrottlingRecoveryStrategy{
-  def forTimeout(timeout :Duration) = AmazonThrottlingRecoveryStrategy((math.log(timeout.toMillis / 50 +1)/math.log(2)).toInt)
+  def forTimeout(timeout :FiniteDuration) = AmazonThrottlingRecoveryStrategy((math.log(timeout.toMillis / 50 +1)/math.log(2)).toInt)
 }
 
 case class AmazonThrottlingRecoveryStrategy(maxRetries: Int) extends ThrottlingRecoveryStrategy{
@@ -18,7 +18,7 @@ case class AmazonThrottlingRecoveryStrategy(maxRetries: Int) extends ThrottlingR
   def onExecute[T](f: => T, operation: PendingOperation[T], system : ActorSystem) : T = f
 }
 
-case class ExpotentialBackoffThrottlingRecoveryStrategy(maxRetries: Int, backoffBase: Duration) extends  ThrottlingRecoveryStrategy{
+case class ExpotentialBackoffThrottlingRecoveryStrategy(maxRetries: Int, backoffBase: FiniteDuration) extends  ThrottlingRecoveryStrategy{
   val amazonMaxErrorRetry = 0
   lazy val BASE = backoffBase.toMillis
 

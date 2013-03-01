@@ -17,7 +17,7 @@
 import com.amazonaws.services.dynamodb.AmazonDynamoDB
 import akka.actor.ActorRef
 import akka.util.Timeout
-import akka.dispatch.Future
+import concurrent.Future
 
 package object asyncdynamo {
 

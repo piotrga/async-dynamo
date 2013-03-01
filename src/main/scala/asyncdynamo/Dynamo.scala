@@ -21,12 +21,11 @@ import com.amazonaws.services.dynamodb.AmazonDynamoDBClient
 import com.amazonaws.ClientConfiguration
 import com.amazonaws.auth.BasicAWSCredentials
 import akka.routing.SmallestMailboxRouter
-import akka.util.duration._
-import akka.util.Duration
 import com.typesafe.config.ConfigFactory
 import com.amazonaws.services.dynamodb.model._
 import akka.actor.Status.Failure
 import asyncdynamo.Operation.Type
+import concurrent.duration._
 
 class Dynamo(config: DynamoConfig) extends Actor {
 
@@ -39,7 +38,11 @@ class Dynamo(config: DynamoConfig) extends Actor {
     c
   }
 
-  private val delegate = new AmazonDynamoDBClient(new BasicAWSCredentials(config.accessKey, config.secret), clientConfig)
+  private val delegate = if (!config.accessKey.isEmpty)
+    new AmazonDynamoDBClient(new BasicAWSCredentials(config.accessKey, config.secret), clientConfig)
+  else
+    new AmazonDynamoDBClient(clientConfig)
+
   private val db = new TracingAmazonDynamoDB(delegate, context.system.eventStream)
 
   db.setEndpoint(config.endpointUrl)
@@ -67,7 +70,7 @@ class Dynamo(config: DynamoConfig) extends Actor {
     sender ! Failure(new ThirdPartyException("AmazonDB Error: [%s] while executing [%s]" format (reason.getMessage, message), reason))
   }
 
-  private def time[T](f : => T) :( T, Duration) = {
+  private def time[T](f : => T) :( T, FiniteDuration) = {
     val start = System.currentTimeMillis()
     val res = f
     val duration = System.currentTimeMillis() - start
@@ -85,7 +88,7 @@ object Dynamo{
         .withRouter(SmallestMailboxRouter(connectionCount))
         .withDispatcher("dynamo-connection-dispatcher"), "DynamoConnection")
 
-      protected def receive = {
+      def receive = {
         case overdue @ PendingOperation(op, deadline) if (deadline.isOverdue()) =>
           system.eventStream publish OperationOverdue(op)
         case msg: PendingOperation[_] =>
@@ -105,7 +108,7 @@ case class DynamoConfig(
                          secret: String,
                          tablePrefix: String,
                          endpointUrl: String,
-                         timeout: Duration = 10 seconds,
+                         timeout: FiniteDuration = 10 seconds,
                          throttlingRecoveryStrategy : ThrottlingRecoveryStrategy = AmazonThrottlingRecoveryStrategy.forTimeout(10 seconds)
                          )
 
@@ -116,7 +119,7 @@ class ThirdPartyException(msg: String, cause:Throwable=null) extends RuntimeExce
 trait DynamoEvent
 
 case class DynamoRequestExecuted(operation:Operation, readUnits: Double = 0 , writeUnits: Double =0, time : Long = System.currentTimeMillis(), duration : Long) extends DynamoEvent
-case class OperationExecuted(duration:Duration, operation: DbOperation[_]) extends DynamoEvent
+case class OperationExecuted(duration:FiniteDuration, operation: DbOperation[_]) extends DynamoEvent
 case class OperationFailed(operation: DbOperation[_], reason: Throwable) extends DynamoEvent
 case class ProvisionedThroughputExceeded(operation: DbOperation[_], msg:String) extends DynamoEvent
 case class OperationOverdue(operation: DbOperation[_]) extends DynamoEvent

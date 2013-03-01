@@ -18,8 +18,11 @@
 package asyncdynamo
 
 import nonblocking._
-import akka.util.duration._
 import akka.util.Timeout
+import scala.concurrent.duration._
+import util.Success
+import scala.concurrent.ExecutionContext.Implicits.global
+
 
 object QuckStart extends App{
   implicit val dynamo = Dynamo(DynamoConfig(System.getProperty("amazon.accessKey"), System.getProperty("amazon.secret"), tablePrefix = "devng_", endpointUrl = System.getProperty("dynamo.url", "https://dynamodb.eu-west-1.amazonaws.com")), connectionCount = 3)
@@ -62,7 +65,7 @@ object QuckStart extends App{
     } yield saved
 
     (operation executeOn dynamo)
-      .onSuccess { case person => println("Saved [%s]" format person)}
-      .onComplete{ case _ => dynamo ! 'stop }
+      .andThen{ case Success(person) => println("Saved [%s]" format person)}
+      .andThen{ case _ => dynamo ! 'stop }
   }
 }

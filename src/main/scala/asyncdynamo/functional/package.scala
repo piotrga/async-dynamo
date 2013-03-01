@@ -20,7 +20,7 @@ package object functional {
   /**
    * Useful for paging, ie:
    * {{{
-  def execute(implicit cassandra: ActorRef, timeout: Duration) : Stream[(String,String)]= {
+  def execute(implicit cassandra: ActorRef, timeout: FiniteDuration) : Stream[(String,String)]= {
     Streams.unfold(""){
       (marker : String) =>
         val res = nonblocking.GetSlice(columnFamilyId, rowId, marker, "", batchSize).executeOn(cassandra).get.toSeq

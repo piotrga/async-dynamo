@@ -21,7 +21,7 @@ Example
 
 import asyncdynamo._
 import nonblocking._
-import akka.util.duration._
+import scala.concurrent.duration._
 import akka.util.Timeout
 
 object QuckStart extends App{

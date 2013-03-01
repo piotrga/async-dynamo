@@ -16,11 +16,9 @@
 
 package asyncdynamo
 
-import nonblocking.{Read, Save}
 import org.scalatest.matchers.MustMatchers
 import org.scalatest.FreeSpec
 import java.util.UUID
-import asyncdynamo.DynamoTestObjectSupport
 import asyncdynamo.DynamoTestDataObjects.DynamoTestObject
 import asyncdynamo.nonblocking.Read
 import asyncdynamo.nonblocking.Save

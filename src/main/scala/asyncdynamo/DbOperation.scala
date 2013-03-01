@@ -18,16 +18,18 @@ package asyncdynamo
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDB
 import akka.actor.ActorRef
-import akka.util.{Deadline, Timeout}
-import akka.dispatch.{Await, Future}
 import akka.pattern.ask
 import com.amazonaws.services.dynamodb.model.ProvisionedThroughputExceededException
+import concurrent.{Future, Await}
+import concurrent.duration.Deadline
+import akka.util.Timeout
+import reflect.ClassTag
 
 object DbOperation{
   val DEBUG = sys.props.get("asyncdynamo.debug")
 }
 
-abstract class DbOperation[T]{ self =>
+abstract class DbOperation[T](){ self =>
   private val stack = try DbOperation.DEBUG map (_ => Thread.currentThread().getStackTrace.drop(7).take(7)) catch { case ex:Throwable => println(ex); None}
 
   def map[B](g: T => B): DbOperation[B] = (db: AmazonDynamoDB, tablePrefix:String) => g(safeExecute(db, tablePrefix))
@@ -54,6 +56,7 @@ abstract class DbOperation[T]{ self =>
   }
 
   def executeOn(dynamo: ActorRef)(implicit timeout:Timeout): Future[T] = {
+    import scala.concurrent.ExecutionContext.Implicits.global
     dynamo ? PendingOperation(this, Deadline.now + timeout.duration) map (_.asInstanceOf[T])
   }
 }

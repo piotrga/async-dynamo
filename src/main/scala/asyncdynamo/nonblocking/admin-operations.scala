@@ -18,11 +18,12 @@ package asyncdynamo.nonblocking
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDB
 import com.amazonaws.services.dynamodb.model._
-import akka.dispatch.{Await, Future, Promise}
-import akka.actor.{ActorSystem, ActorRef, Scheduler, Actor}
-import akka.util.{Timeout, Duration}
-import akka.util.duration._
+import akka.actor.{ActorSystem, ActorRef}
+import akka.util.Timeout
+import scala.concurrent.duration._
 import asyncdynamo._
+import concurrent.{Promise, Future, Await}
+import util.{Failure, Success}
 
 case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
   def execute(db: AmazonDynamoDB, tablePrefix:String) {
@@ -48,9 +49,9 @@ case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(imp
   }
 
   override def blockingExecute(implicit dynamo: ActorRef, timeout: Timeout) {
-    Await.ready(this.executeOn(dynamo)(timeout).flatMap{ _ =>
-      IsTableActive()(dyn).blockUntilTrue(timeout.duration)
-    }, timeout.duration)
+    val deadline = Deadline.now + timeout.duration
+    Await.ready(this.executeOn(dynamo)(timeout), timeout.duration)
+    Await.ready(IsTableActive()(dyn).blockUntilTrue(deadline.timeLeft), deadline.timeLeft)
   }
 
 
@@ -74,18 +75,19 @@ case class IsTableActive[T](implicit dyn: DynamoObject[T]) extends DbOperation[B
   }
 
 
-  def blockUntilTrue(timeout:Duration)(implicit dynamo: ActorRef): Future[Unit] = {
+  def blockUntilTrue(timeout:FiniteDuration)(implicit dynamo: ActorRef): Future[Unit] = {
     val start = System.currentTimeMillis()
     implicit val sys = ActorSystem("blockUntilTrue") //TODO: this is not very resource-efficient (Peter G. 23/10/2012)
-    val promise = Promise[Unit]().onComplete(_ => sys.shutdown())
+    implicit val exec = sys.dispatcher
+    val promise = Promise[Unit]()
 
     def schedule() {
       sys.scheduler.scheduleOnce(100 milliseconds){
         if (System.currentTimeMillis() - start < timeout.toMillis) {
           this.executeOn(dynamo)(timeout).onComplete{
-            case Right(false) => schedule()
-            case Right(true)  => promise.tryComplete(Right(true))
-            case Left(e) => promise.failure(e)
+            case Success(false) => schedule()
+            case Success(true)  => promise.tryComplete(Success(true))
+            case Failure(e) => promise.failure(e)
           }
         }
       }
@@ -93,7 +95,7 @@ case class IsTableActive[T](implicit dyn: DynamoObject[T]) extends DbOperation[B
 
     schedule()
 
-    promise
+    promise.future.andThen{case _ => sys.shutdown()}
   }
 
 }
