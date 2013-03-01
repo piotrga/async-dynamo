@@ -12,12 +12,12 @@ Add the following to your build.sbt file for Scala 2.10:
 ```scala
 resolvers += "piotrga" at "https://github.com/piotrga/piotrga.github.com/tree/master/maven-repo"
 
-libraryDependencies += "asyncdynamo" % "async-dynamo" % "1.6"
+libraryDependencies += "asyncdynamo" % "async-dynamo" % "1.6.0"
 ```
 or for scala 2.9.2
 
 ```
-libraryDependencies += "asyncdynamo" % "async-dynamo" % "1.5.5"
+libraryDependencies += "asyncdynamo" % "async-dynamo" % "1.5.4"
 ```
 
 Example
