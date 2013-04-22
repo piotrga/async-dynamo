@@ -8,11 +8,9 @@ For detailed information please read [User Guide][user_guide].
 
 SBT
 ---
-WARNING: Due to the change in the way github hosts the raw files this repos no longer work with maven/sbt/ivy, but feel free to browse them and download the binaries manually.
-
 Add the following to your build.sbt file for Scala 2.10:
 ```scala
-resolvers += "piotrga" at "https://github.com/piotrga/piotrga.github.com/tree/master/maven-repo"
+resolvers += "piotrga" at "https://raw.github.com/piotrga/piotrga.github.com/master/maven-repo/"
 
 libraryDependencies += "asyncdynamo" % "async-dynamo" % "1.6.0"
 ```
