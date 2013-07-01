@@ -30,16 +30,26 @@ import scala.collection.JavaConversions._
 case class CreateTable[T](readThroughput: Long = 5, writeThrougput: Long = 5)(implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
   def execute(db: AmazonDynamoDB, tablePrefix:String) {
 
-    var keySchema = List(dyn.key) ++ dyn.range.toSeq
-
     val provisionedThroughput = new ProvisionedThroughput()
       .withReadCapacityUnits(readThroughput)
       .withWriteCapacityUnits(writeThrougput)
 
+    val attributes = List(dyn.key) ++ dyn.range.toSeq
+
+    val keySchema = List(new KeySchemaElement()
+      .withAttributeName(dyn.key.getAttributeName)
+      .withKeyType(KeyType.HASH)
+    ) ++ dyn.range.map(attr =>
+      new KeySchemaElement()
+        .withAttributeName(attr.getAttributeName())
+        .withKeyType(KeyType.RANGE)
+    )
+
     val request = new CreateTableRequest()
       .withTableName(dyn.table(tablePrefix))
-      .withKeySchema(keySchema)
       .withProvisionedThroughput(provisionedThroughput)
+      .withAttributeDefinitions(attributes)
+      .withKeySchema(keySchema)
     db.createTable(request)
   }
 
