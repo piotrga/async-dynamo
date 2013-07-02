@@ -79,7 +79,7 @@ class Dynamo(config: DynamoConfig) extends Actor {
 
 }
 
-object Dynamo{
+object Dynamo {
   def apply(config: DynamoConfig, connectionCount: Int) : ActorRef = {
     val system = ActorSystem("Dynamo", ConfigFactory.load().getConfig("Dynamo") )
 
