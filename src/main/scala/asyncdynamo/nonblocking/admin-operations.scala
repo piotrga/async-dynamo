@@ -91,7 +91,7 @@ case class IsTableActive[T](implicit dyn: DynamoObject[T]) extends DbOperation[B
         if (System.currentTimeMillis() - start < timeout.toMillis) {
           this.executeOn(dynamo)(timeout).onComplete{
             case Success(false) => schedule()
-            case Success(true)  => promise.tryComplete(Success(true))
+            case Success(true)  => promise.tryComplete(Success(()))
             case Failure(e) => promise.failure(e)
           }
         }
