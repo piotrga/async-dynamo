@@ -125,20 +125,22 @@ case class Query[T](id: String, operator: Option[String], attributes: Seq[Any], 
         .withAttributeValueList(attributes.map(dyn.asRangeAttribute))
     }
 
-    val query = new QueryRequest()
+    var query = new QueryRequest()
       .withTableName(dyn.table(tablePrefix))
       .withKeyConditions(keyConditions)
-      .withExclusiveStartKey(exclusiveStartKey getOrElse null)
       .withConsistentRead(consistentRead)
       .withLimit(limit)
 
+    if (exclusiveStartKey.isDefined) {
+      query = query.withExclusiveStartKey(exclusiveStartKey.get)
+    } 
 
     val result = db.query(query)
     val items = result.getItems.asScala.map {
       item => dyn.fromDynamo(item.asScala.toMap)
     }
 
-    (items, Option(result.getLastEvaluatedKey.toMap))
+    (items, if (result.getLastEvaluatedKey == null) { None } else { Option(result.getLastEvaluatedKey.toMap) })
   }
 
   //TODO: use iteratees or some other magic to get rid of this blocking behaviour (Peter G. 31/10/2012)
