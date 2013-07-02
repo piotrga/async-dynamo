@@ -2,7 +2,7 @@ organization := "asyncdynamo"
 
 name := "async-dynamo"
 
-scalaVersion := "2.10.0"
+scalaVersion := "2.10.1"
 
 //resolvers += Resolver.file("piotrga", file(sys.env("PIOTRGA_GITHUB_REPO")))
 resolvers += "piotrga-remote" at "https://raw.github.com/piotrga/piotrga.github.com/master/maven-repo"

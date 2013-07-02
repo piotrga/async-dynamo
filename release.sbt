@@ -12,7 +12,7 @@ nextVersion := { ver => Version(ver).map(_.bumpBugfix.asSnapshot.string).getOrEl
 // PUBLISHING
 publishMavenStyle := true
 
-//publishTo :=  Some(Resolver.file("piotrga", file(sys.env("PIOTRGA_GITHUB_REPO"))))
+publishTo :=  Some(Resolver.file("piotrga", file(sys.env("PIOTRGA_GITHUB_REPO"))))
 
 
 packageOptions <<= (Keys.version, Keys.name, Keys.artifact) map {
