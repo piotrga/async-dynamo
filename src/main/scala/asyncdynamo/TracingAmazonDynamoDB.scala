@@ -6,7 +6,7 @@ import com.amazonaws.AmazonWebServiceRequest
 import com.amazonaws.regions.Region
 import akka.event.EventStream
 
-private class TracingAmazonDynamoDB(delegate  : AmazonDynamoDB, eventStream : EventStream) extends AmazonDynamoDB {
+protected class TracingAmazonDynamoDB(delegate  : AmazonDynamoDB, eventStream : EventStream) extends AmazonDynamoDB {
 
   def setEndpoint(endpoint: String) {delegate.setEndpoint(endpoint)}
   def setRegion(region: Region) { delegate.setRegion(region) }
@@ -26,21 +26,21 @@ private class TracingAmazonDynamoDB(delegate  : AmazonDynamoDB, eventStream : Ev
   def deleteItem(deleteItemRequest: DeleteItemRequest) = {
     deleteItemRequest.setReturnConsumedCapacity(ReturnConsumedCapacity.TOTAL)
     val (res, duration) = time (delegate.deleteItem(deleteItemRequest))
-    pub(DynamoRequestExecuted(Operation(deleteItemRequest.getTableName, Write, "DeleteItem"), writeUnits = res.getConsumedCapacity.getCapacityUnits, duration = duration))
+    pub(DynamoRequestExecuted(Operation(deleteItemRequest.getTableName, Write, "DeleteItem"), writeUnits = Option(scala.Double.unbox(res.getConsumedCapacity.getCapacityUnits)), duration = duration))
     res
   }
 
   def getItem(getItemRequest: GetItemRequest) = {
     getItemRequest.setReturnConsumedCapacity(ReturnConsumedCapacity.TOTAL)
     val (res, duration) = time(delegate.getItem(getItemRequest))
-    pub(DynamoRequestExecuted(Operation(getItemRequest.getTableName, Read,"GetItem"), readUnits = res.getConsumedCapacity.getCapacityUnits, duration = duration))
+    pub(DynamoRequestExecuted(Operation(getItemRequest.getTableName, Read, "GetItem"), readUnits = Option(scala.Double.unbox(res.getConsumedCapacity.getCapacityUnits)), duration = duration))
     res
   }
 
   def scan(scanRequest: ScanRequest) = {
     scanRequest.setReturnConsumedCapacity(ReturnConsumedCapacity.TOTAL)
     val (res, duration) = time(delegate.scan(scanRequest))
-    pub(DynamoRequestExecuted(Operation(scanRequest.getTableName, Read,"Scan"), readUnits = res.getConsumedCapacity.getCapacityUnits, duration = duration))
+    pub(DynamoRequestExecuted(Operation(scanRequest.getTableName, Read, "Scan"), readUnits = Option(scala.Double.unbox(res.getConsumedCapacity.getCapacityUnits)), duration = duration))
     res
   }
 
@@ -48,24 +48,23 @@ private class TracingAmazonDynamoDB(delegate  : AmazonDynamoDB, eventStream : Ev
   def updateItem(updateItemRequest: UpdateItemRequest) = {
     updateItemRequest.setReturnConsumedCapacity(ReturnConsumedCapacity.TOTAL)
     val (res, duration) = time(delegate.updateItem(updateItemRequest))
-    pub(DynamoRequestExecuted(Operation(updateItemRequest.getTableName, Write,"UpdateItem"), writeUnits = res.getConsumedCapacity.getCapacityUnits, duration = duration))
+    pub(DynamoRequestExecuted(Operation(updateItemRequest.getTableName, Write, "UpdateItem"), writeUnits = Option(scala.Double.unbox(res.getConsumedCapacity.getCapacityUnits)), duration = duration))
     res
   }
 
   def query(queryRequest: QueryRequest) = {
     queryRequest.setReturnConsumedCapacity(ReturnConsumedCapacity.TOTAL)
     val (res, duration) = time(delegate.query(queryRequest))
-    pub(DynamoRequestExecuted(Operation(queryRequest.getTableName, Read,"Query"), readUnits = res.getConsumedCapacity.getCapacityUnits, duration = duration))
+    pub(DynamoRequestExecuted(Operation(queryRequest.getTableName, Read, "Query"), readUnits = Option(scala.Double.unbox(res.getConsumedCapacity.getCapacityUnits)), duration = duration))
     res
   }
 
   def putItem(putItemRequest: PutItemRequest) = {
     putItemRequest.setReturnConsumedCapacity(ReturnConsumedCapacity.TOTAL)
     val (res, duration) = time(delegate.putItem(putItemRequest))
-    pub(DynamoRequestExecuted(Operation(putItemRequest.getTableName, Write,"PutItem"), writeUnits = res.getConsumedCapacity.getCapacityUnits, duration = duration))
+    pub(DynamoRequestExecuted(Operation(putItemRequest.getTableName, Write, "PutItem"), writeUnits = Option(scala.Double.unbox(res.getConsumedCapacity.getCapacityUnits)), duration = duration))
     res
   }
-
 
   import collection.JavaConversions._
 
@@ -75,7 +74,7 @@ private class TracingAmazonDynamoDB(delegate  : AmazonDynamoDB, eventStream : Ev
 
     res.getConsumedCapacity foreach {
       case consumedCapacity => 
-        pub(DynamoRequestExecuted(Operation(consumedCapacity.getTableName(), Read, "BatchGetItem"), readUnits = consumedCapacity.getCapacityUnits, duration = duration))
+        pub(DynamoRequestExecuted(Operation(consumedCapacity.getTableName(), Read, "BatchGetItem"), readUnits = Option(scala.Double.unbox(consumedCapacity.getCapacityUnits)), duration = duration))
     }
     res
   }
@@ -85,16 +84,17 @@ private class TracingAmazonDynamoDB(delegate  : AmazonDynamoDB, eventStream : Ev
     val (res, duration) = time(delegate.batchWriteItem(batchWriteItemRequest))
     res.getConsumedCapacity foreach {
       case consumedCapacity => 
-        pub(DynamoRequestExecuted(Operation(consumedCapacity.getTableName(), Write, "BatchWriteItem"), writeUnits = consumedCapacity.getCapacityUnits, duration = duration))
+        pub(DynamoRequestExecuted(Operation(consumedCapacity.getTableName(), Write, "BatchWriteItem"), writeUnits = Option(scala.Double.unbox(consumedCapacity.getCapacityUnits)), duration = duration))
     }
     res
   }
 
   private def pub(op:DynamoRequestExecuted) = eventStream.publish(op)
 
-  def time[T]( f: => T) : (T, Long)  ={
+  def time[T](f: => T): (T, Long) = {
     val start = System.currentTimeMillis()
     val res = f
     (res, System.currentTimeMillis() - start)
   }
+
 }
