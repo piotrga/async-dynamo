@@ -15,7 +15,7 @@ Add this to your `built.sbt` file:
 ```scala
 resolvers += "SnowPlow Repo" at "http://maven.snplow.com/releases/"
 
-libraryDependencies += "asyncdynamo" % "async-dynamo" % "1.8.0"
+libraryDependencies += "asyncdynamo" % "async-dynamo" % "1.7.1"
 ```
 
 ### Example
