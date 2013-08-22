@@ -20,7 +20,7 @@ import nonblocking.{CreateTable, TableExists}
 import org.scalatest.{BeforeAndAfterAll, Suite}
 import akka.util.Timeout
 import scala.concurrent.duration._
-import com.amazonaws.services.dynamodb.model.AttributeValue
+import com.amazonaws.services.dynamodbv2.model.{ScalarAttributeType, KeyType, AttributeValue}
 
 object DynamoTestDataObjects{
   case class DynamoTestObject(id:String, someValue:String)
@@ -36,7 +36,7 @@ object DynamoTestDataObjects{
     def toDynamo(t: DynamoTestWithRangeObject) = Map("id"->t.id, "rangeValue"->t.rangeValue, "otherValue" -> t.otherValue)
     def fromDynamo(a: Map[String, AttributeValue]) = DynamoTestWithRangeObject(a("id").getS, a("rangeValue").getS, a("otherValue").getS)
     protected val table = "%s_dynamotest_withrange" format Option(System.getenv("USER")).getOrElse("unknown")
-    override val range = Some(key("rangeValue", "S"))
+    override val range = Some(key("rangeValue", ScalarAttributeType.S, KeyType.RANGE))
   }
 
   case class DynamoTestWithNumericRangeObject(id:String, rangeValue:Int, otherValue: String)
@@ -44,7 +44,7 @@ object DynamoTestDataObjects{
     def toDynamo(t: DynamoTestWithNumericRangeObject) = Map("id"->t.id, "rangeValue"->toN(t.rangeValue), "otherValue" -> t.otherValue)
     def fromDynamo(a: Map[String, AttributeValue]) = DynamoTestWithNumericRangeObject(a("id").getS, a("rangeValue").getN.toInt, a("otherValue").getS)
     protected val table = "%s_dynamotest_with_numeric_range" format Option(System.getenv("USER")).getOrElse("unknown")
-    override val range = Some(key("rangeValue", "N"))
+    override val range = Some(key("rangeValue", ScalarAttributeType.N, KeyType.RANGE))
   }
 
   case class Broken(id:String)
@@ -56,8 +56,9 @@ object DynamoTestDataObjects{
 }
 
 trait DynamoSupport extends BeforeAndAfterAll{ self : Suite =>
-  implicit val dynamo = Dynamo(DynamoConfig(System.getProperty("amazon.accessKey"), System.getProperty("amazon.secret"), tablePrefix = "devng_", endpointUrl = System.getProperty("dynamo.url", "https://dynamodb.eu-west-1.amazonaws.com" )), connectionCount = 4)
+  implicit val dynamo = Dynamo(DynamoConfig(System.getProperty("amazon.accessKey"), System.getProperty("amazon.secret"), tablePrefix = "devng_", endpointUrl = System.getProperty("dynamo.url", "https://dynamodb.us-west-2.amazonaws.com" )), connectionCount = 4)
   implicit val timeout = Timeout(10 seconds)
+  implicit val returnConsumedCapacity = "TOTAL" // TODO is this better done with an implicit or a default arg value?
 
   override protected def afterAll() {
     dynamo ! 'stop
