@@ -16,28 +16,31 @@
 
 package asyncdynamo
 
-import com.amazonaws.services.dynamodb.model.{KeySchemaElement, AttributeValue}
+import com.amazonaws.services.dynamodbv2.model.{ScalarAttributeType, KeyType, KeySchemaElement, AttributeValue}
+
+case class DynamoKey(keySchema: KeySchemaElement, attributeType: ScalarAttributeType)
 
 trait DynamoObject[T]{
 
   protected implicit def toS(value : String) = new AttributeValue().withS(value)
   protected def toN[A: Numeric](number: A) =  new AttributeValue().withN(number.toString)
 
-  protected def key(attrName:String, attrType: String) = new KeySchemaElement().withAttributeName(attrName).withAttributeType(attrType)
+  protected def key(attributeName: String, attributeType: ScalarAttributeType, keyType: KeyType = KeyType.HASH) = DynamoKey(new KeySchemaElement().withAttributeName(attributeName).withKeyType(keyType), attributeType)
 
   protected def table : String
   def toDynamo(t:T) : Map[String, AttributeValue]
   def fromDynamo(attributes: Map[String, AttributeValue]) : T
   def table(prefix: String): String = prefix + table
-  def key: KeySchemaElement = key("id", "S")
-  def range: Option[KeySchemaElement] = None
+  def key: DynamoKey = key("id", ScalarAttributeType.S, KeyType.HASH) // TODO assume this is always the hash key?? we should rename this to hashKey. always assume string?
+  def range: Option[DynamoKey] = None
 
-  def asRangeAttribute(v: Any) : AttributeValue = range.getOrElse(sys.error("This table doesn't have range attribute")).getAttributeType match {
-      case "S" => new AttributeValue().withS(v.toString)
-      case "N" => new AttributeValue().withN(v.toString)
+  // TODO this changed, key attribute types are no longer separated from other attributes and as result no longer available from KeySchemaElement
+  def asRangeAttribute(v: Any) : AttributeValue = range.getOrElse(sys.error("This table doesn't have range attribute")).attributeType match {
+      case ScalarAttributeType.S => new AttributeValue().withS(v.toString)
+      case ScalarAttributeType.N => new AttributeValue().withN(v.toString)
+        // TODO binary support?
       case aType => sys.error("Not supported range attribute type [%s]" format aType)
   }
-
 }
 
 object DynamoObject {
@@ -71,7 +74,7 @@ object DynamoObject {
       def fromDynamo(attributes: Map[String, AttributeValue]) = construct(names.map{ name => attributes.get(name).map(_.getS).getOrElse(null)})
       def toDynamo(t: T) = names.zipWithIndex.filter{ case(name,i) => t.productElement(i) != null }.map {case (name, i) => (name, new AttributeValue().withS(t.productElement(i).toString))}.toMap
 
-      override def key = key(keyName, "S")
+      override def key = key(keyName, ScalarAttributeType.S, KeyType.HASH) // TODO assume this is always the hash key??
       protected def table = className
     }
   }

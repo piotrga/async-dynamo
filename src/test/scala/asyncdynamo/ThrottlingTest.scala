@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.{TimeUnit, CountDownLatch}
 import util.{Success, Failure}
 import scala.concurrent.ExecutionContext.Implicits.global
+import com.amazonaws.services.dynamodbv2.model.ComparisonOperator
 
 
 object ThrottlingTest extends  App{
@@ -41,6 +42,7 @@ object ThrottlingTest extends  App{
       ), connectionCount = 30)
     implicit val timeout = Timeout(33 seconds)
     implicit val sys = ActorSystem("test")
+    implicit val returnConsumedCapacity = "TOTAL" // TODO is this better done with an implicit or a default arg value?
 
     dynamo ! ('addListener, sys.actorOf(Props( new Actor {
       def receive = {
@@ -60,7 +62,7 @@ object ThrottlingTest extends  App{
     val N = 12000
     val id = UUID.randomUUID().toString
     createTestObjectsInDb(id, N)
-    assert (Query[DynamoTestWithRangeObject](id, "GT", List("0")).blockingStream.size == N )
+    assert (Query[DynamoTestWithRangeObject](id, ComparisonOperator.GT, List("0")).blockingStream.size == N )
 
 
     def createTestObjectsInDb(id : String, n: Int)  {

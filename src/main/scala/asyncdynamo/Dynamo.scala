@@ -17,17 +17,17 @@
 package asyncdynamo
 
 import akka.actor._
-import com.amazonaws.services.dynamodb.AmazonDynamoDBClient
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
 import com.amazonaws.ClientConfiguration
 import com.amazonaws.auth.BasicAWSCredentials
 import akka.routing.SmallestMailboxRouter
 import com.typesafe.config.ConfigFactory
-import com.amazonaws.services.dynamodb.model._
+import com.amazonaws.services.dynamodbv2.model._
 import akka.actor.Status.Failure
 import asyncdynamo.Operation.Type
 import concurrent.duration._
 
-class Dynamo(config: DynamoConfig) extends Actor {
+class Dynamo(config: DynamoConfig) extends Actor with ActorLogging {
 
   private val clientConfig = {
     val c = new ClientConfiguration()
@@ -47,6 +47,7 @@ class Dynamo(config: DynamoConfig) extends Actor {
 
   db.setEndpoint(config.endpointUrl)
 
+  // TODO replace eventStream.publish with ActorLogging.log ?
   override def receive = {
     case pending @ PendingOperation(op, deadline) if (deadline.hasTimeLeft()) =>
       try{

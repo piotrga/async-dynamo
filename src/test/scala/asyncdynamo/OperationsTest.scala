@@ -26,6 +26,7 @@ import asyncdynamo.blocking._
 import akka.actor.{Actor, Props, ActorSystem}
 import concurrent.{Future, Await}
 import scala.concurrent.ExecutionContext.Implicits.global
+import com.amazonaws.services.dynamodbv2.model.ComparisonOperator
 
 
 class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSupport{
@@ -79,8 +80,8 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     Save(obj1)
     Save(obj2)
 
-    Query[DynamoTestWithRangeObject](id, "GT", List("0")).blockingStream must (contain(obj1) and contain(obj2))
-    Query[DynamoTestWithRangeObject](id, "GT", List("1")).blockingStream must (contain(obj2) and not(contain(obj1)) )
+    Query[DynamoTestWithRangeObject](id, ComparisonOperator.GT, List("0")).blockingStream must (contain(obj1) and contain(obj2))
+    Query[DynamoTestWithRangeObject](id, ComparisonOperator.GT, List("1")).blockingStream must (contain(obj2) and not(contain(obj1)) )
   }
 
   import scala.concurrent.duration._
@@ -95,7 +96,7 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
   "Query works for more than 100 elements" in {
     val N = 150
     val objs = givenTestObjectsInDb(N)
-    Query[DynamoTestWithRangeObject](objs(0).id, "GT", List("0")).blockingStream.size must be(N)
+    Query[DynamoTestWithRangeObject](objs(0).id, ComparisonOperator.GT, List("0")).blockingStream.size must be(N)
   }
 
   "Query iteratee" in {
@@ -103,7 +104,7 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     import asyncdynamo._
     val N = 5
     val objs = givenTestObjectsInDb(N)
-    val it = Await.result(Query[DynamoTestWithRangeObject](objs(0).id, "GT", List("0")).run(takeAll()), 5 seconds)
+    val it = Await.result(Query[DynamoTestWithRangeObject](objs(0).id, ComparisonOperator.GT, List("0")).run(takeAll()), 5 seconds)
 
     it match {
       case Done(list)=> list.size must be(N)
@@ -114,7 +115,7 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
 
   "Query honours limit parameter" in {
     val objs = givenTestObjectsInDb(3)
-    Query[DynamoTestWithRangeObject](objs(0).id, "GT", List("0"), limit = 2).blockingStream must (contain(objs(0)) and contain(objs(1)) and contain(objs(2)))
+    Query[DynamoTestWithRangeObject](objs(0).id, ComparisonOperator.GT, List("0"), limit = 2).blockingStream must (contain(objs(0)) and contain(objs(1)) and contain(objs(2)))
   }
 
   {
@@ -122,7 +123,7 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     blocking.Save(DynamoTestWithNumericRangeObject(id, 100 , "value 100"))
     blocking.Save(DynamoTestWithNumericRangeObject(id, 50 , "value 50"))
 
-    def query(from:Int, to:Int) = Query[DynamoTestWithNumericRangeObject](id, "BETWEEN", Seq(from, to)).blockingStream.toSeq
+    def query(from:Int, to:Int) = Query[DynamoTestWithNumericRangeObject](id, ComparisonOperator.BETWEEN, Seq(from, to)).blockingStream.toSeq
 
     "Query works with numeric range" in {
       query( 0, 150).size must be(2)
@@ -146,8 +147,8 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
 
     nonblocking.DeleteByRange[DynamoTestWithRangeObject](id, range = "1") blockingExecute
 
-    Query[DynamoTestWithRangeObject](id, "EQ", List("1")).blockingStream must be ('empty)
-    Query[DynamoTestWithRangeObject](id, "EQ", List("2")).blockingStream must not be ('empty)
+    Query[DynamoTestWithRangeObject](id, ComparisonOperator.EQ, List("1")).blockingStream must be ('empty)
+    Query[DynamoTestWithRangeObject](id, ComparisonOperator.EQ, List("2")).blockingStream must not be ('empty)
   }
 
   "DeleteByRange for range which is numeric" in pending
@@ -158,7 +159,7 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
 
     nonblocking.DeleteByRange[DynamoTestWithRangeObject](id, range = "1", expected = Map("otherValue" -> "value 1")) blockingExecute
 
-    Query[DynamoTestWithRangeObject](id, "EQ", List("1")).blockingStream must be ('empty)
+    Query[DynamoTestWithRangeObject](id, ComparisonOperator.EQ, List("1")).blockingStream must be ('empty)
   }
 
   private def assertCanSaveGetObject() {

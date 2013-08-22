@@ -27,6 +27,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object QuckStart extends App{
   implicit val dynamo = Dynamo(DynamoConfig(System.getProperty("amazon.accessKey"), System.getProperty("amazon.secret"), tablePrefix = "devng_", endpointUrl = System.getProperty("dynamo.url", "https://dynamodb.eu-west-1.amazonaws.com")), connectionCount = 3)
   implicit val timeout = Timeout(10 seconds)
+  implicit val returnConsumedCapacity = "TOTAL" // TODO is this better done with an implicit or a default arg value?
 
   case class Person(id :String, name: String, email: String)
   implicit val personDO = DynamoObject.of3(Person) // make Person dynamo-enabled

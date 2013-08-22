@@ -16,34 +16,42 @@
 
 package asyncdynamo.nonblocking
 
-import com.amazonaws.services.dynamodb.AmazonDynamoDB
-import com.amazonaws.services.dynamodb.model._
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
+import com.amazonaws.services.dynamodbv2.model._
 import akka.actor.{ActorSystem, ActorRef}
 import akka.util.Timeout
 import scala.concurrent.duration._
 import asyncdynamo._
 import concurrent.{Promise, Future, Await}
 import util.{Failure, Success}
+import collection.JavaConverters._
 
-case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
+case class CreateTable[T](readThroughput: Long = 5, writeThrougput: Long = 5)(implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
   def execute(db: AmazonDynamoDB, tablePrefix:String) {
 
-
     val keySchema = dyn.range match {
-      case Some((range)) =>
-        new KeySchema().withHashKeyElement(dyn.key)
-        .withRangeKeyElement(range)
+      case Some(range) =>
+        List(dyn.key.keySchema, range.keySchema).asJava
       case None =>
-        new KeySchema().withHashKeyElement(dyn.key)
+        List(dyn.key.keySchema).asJava
+    }
+    val attributeDefinition = dyn.range match {
+      case Some(range) =>
+        List(new AttributeDefinition(dyn.key.keySchema.getAttributeName, dyn.key.attributeType.toString), new AttributeDefinition(range.keySchema.getAttributeName, range.attributeType.toString))
+      case None =>
+        List(new AttributeDefinition(dyn.key.keySchema.getAttributeName, dyn.key.attributeType.toString))
     }
 
     val provisionedThroughput = new ProvisionedThroughput()
       .withReadCapacityUnits(readThroughput)
       .withWriteCapacityUnits(writeThrougput)
 
+    // TODO add attributeDefinitions
+
     val request = new CreateTableRequest()
       .withTableName(dyn.table(tablePrefix))
       .withKeySchema(keySchema)
+      .withAttributeDefinitions(attributeDefinition.asJava)
       .withProvisionedThroughput(provisionedThroughput)
     db.createTable(request)
   }
@@ -53,9 +61,6 @@ case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(imp
     Await.ready(this.executeOn(dynamo)(timeout), timeout.duration)
     Await.ready(IsTableActive()(dyn).blockUntilTrue(deadline.timeLeft), deadline.timeLeft)
   }
-
-
-
 }
 
 case class TableExists[T](implicit dyn: DynamoObject[T]) extends DbOperation[Boolean]{
