@@ -20,7 +20,3 @@ libraryDependencies ++= Seq(
     "monitoring" %% "monitoring" % "1.4.0" % "test"
 )
 
-fork in Test := true
-
-javaOptions in Test := Seq("-Damazon.accessKey=AKIAIBRMYJIYG2AGQVJA", "-Damazon.secret=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", "-Dasyncdynamo.debug") 
-
