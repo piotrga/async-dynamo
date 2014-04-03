@@ -33,18 +33,6 @@ import concurrent.{ExecutionContext, Future, Promise}
 import reflect.ClassTag
 import collection.JavaConversions._
 
-/*private trait Helper[T] {
-  def deriveHashAttributeName(specifiedHashAttrib: String)(implicit db: AmazonDynamoDB, tablePrefix:String, dyn:DynamoObject[T]): String = {
-    if (specifiedHashAttrib.trim.length > 0)
-      specifiedHashAttrib
-    else {
-      val tableDesc = db.describeTable( dyn.table(tablePrefix) )
-      val keySchem = tableDesc.getTable.getKeySchema.find( _.getKeyType == "HASH")
-      keySchem.map( kse => kse.getAttributeName).getOrElse("")
-    }
-  }
-}*/
-
 case class Save[T ](o : T)(implicit dyn:DynamoObject[T]) extends DbOperation[T]{
   def execute(db: AmazonDynamoDB, tablePrefix:String) : T = {
     db.putItem(new PutItemRequest(dyn.table(tablePrefix), dyn.toDynamo(o).asJava))
@@ -54,21 +42,6 @@ case class Save[T ](o : T)(implicit dyn:DynamoObject[T]) extends DbOperation[T]{
   override def toString = "Save[%s](%s)" format (dyn.table(""), o)
 
 }
-
-/*case class Read[T](id:String, consistentRead : Boolean = true, hashAttrib: String = "")(implicit dyn:DynamoObject[T]) extends DbOperation[Option[T]] with Helper[T]{
-  def execute(db: AmazonDynamoDB, tablePrefix:String) : Option[T] = {
-
-    val hashAttribName = deriveHashAttributeName(hashAttrib)(db, tablePrefix, dyn)
-
-    val read = new GetItemRequest( dyn.table(tablePrefix), Map(hashAttribName -> new AttributeValue(id)) )
-      .withConsistentRead(consistentRead)
-
-    val attributes = db.getItem(read).getItem
-    Option (attributes) map ( attr => dyn.fromDynamo(attr.asScala.toMap) )
-  }
-
-  override def toString = "Read[%s](id=%s, consistentRead=%s" format (dyn.table(""), id, consistentRead)
-}*/
 
 case class Read[T](id:String, consistentRead : Boolean = true)(implicit dyn:DynamoObject[T]) extends DbOperation[Option[T]]{
   def execute(db: AmazonDynamoDB, tablePrefix:String) : Option[T] = {
@@ -113,14 +86,14 @@ case class DeleteById[T](id: String)(implicit dyn:DynamoObject[T]) extends DbOpe
 
 case class DeleteByRange[T](id: String, range: Any, expected: Map[String,String] = Map.empty)(implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
   def execute(db: AmazonDynamoDB, tablePrefix:String){
+    if (!dyn.range.isDefined) throw new ThirdPartyException("DeleteByRange works only for tables with a range attribute")
+
     val rangeAttribute = if (dyn.range.get.getKeyType == "S")
       new AttributeValue().withS(range.toString)
     else
       new AttributeValue().withN(range.toString)
 
-    val key = new Key()
-      .withHashKeyElement(new AttributeValue(id))
-      .withRangeKeyElement(rangeAttribute)
+    val key = Map(dyn.key.getAttributeName -> new AttributeValue(id), dyn.range.get.getAttributeName -> rangeAttribute)
 
     val request = new DeleteItemRequest()
       .withTableName(dyn.table(tablePrefix))
@@ -134,7 +107,7 @@ case class DeleteByRange[T](id: String, range: Any, expected: Map[String,String]
 
 }
 
-case class Query[T](id: String, operator: Option[String], attributes: Seq[Any], limit : Int, exclusiveStartKey: Option[Key], consistentRead :Boolean)(implicit dyn:DynamoObject[T]) extends DbOperation[(Seq[T], Option[Key])]{
+case class Query[T](id: String, operator: Option[String], attributes: Seq[Any], limit : Int, exclusiveStartKey: Option[Map[String,AttributeValue]], consistentRead :Boolean)(implicit dyn:DynamoObject[T]) extends DbOperation[(Seq[T], Option[Map[String,AttributeValue]])]{
   def execute(db: AmazonDynamoDB, tablePrefix:String) : (Seq[T], Option[Map[String,AttributeValue]]) = {
 
     val keyConditions: Map[String,dynamodbv2.model.Condition] = Map(id -> new Condition().withComparisonOperator("EQ"))
@@ -146,7 +119,7 @@ case class Query[T](id: String, operator: Option[String], attributes: Seq[Any], 
       .withExclusiveStartKey(exclusiveStartKey getOrElse null)
       .withConsistentRead(consistentRead)
       .withLimit(limit)
-      .withRangeKeyCondition{ operator map ( operator => new dynamodbv2.model.Condition()
+      .withRangeKeyCondition{ operator map ( operator => new Condition()
         .withComparisonOperator(operator)
         .withAttributeValueList(attributes.map(dyn.asRangeAttribute).asJava)) getOrElse null
       }
