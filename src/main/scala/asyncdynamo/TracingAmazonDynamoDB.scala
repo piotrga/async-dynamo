@@ -4,10 +4,12 @@ import com.amazonaws.services.dynamodb.AmazonDynamoDB
 import com.amazonaws.services.dynamodb.model._
 import com.amazonaws.AmazonWebServiceRequest
 import akka.event.EventStream
+import com.amazonaws.regions.Region
 
 private class TracingAmazonDynamoDB(delegate  : AmazonDynamoDB, eventStream : EventStream) extends AmazonDynamoDB {
 
   def setEndpoint(endpoint: String) {delegate.setEndpoint(endpoint)}
+  def setRegion(region: Region): Unit = delegate.setRegion(region)
   def getCachedResponseMetadata(request: AmazonWebServiceRequest) = delegate.getCachedResponseMetadata(request)
 
   def createTable(createTableRequest: CreateTableRequest) = delegate.createTable(createTableRequest)
