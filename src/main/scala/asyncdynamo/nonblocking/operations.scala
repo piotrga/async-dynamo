@@ -113,7 +113,7 @@ case class DeleteById[T](id: String)(implicit dyn:DynamoObject[T]) extends DbOpe
 
 case class DeleteByRange[T](id: String, range: Any, expected: Map[String,String] = Map.empty)(implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
   def execute(db: AmazonDynamoDB, tablePrefix:String){
-    val rangeAttribute = if (dyn.range.get.getAttributeType == "S")
+    val rangeAttribute = if (dyn.range.get.getKeyType == "S")
       new AttributeValue().withS(range.toString)
     else
       new AttributeValue().withN(range.toString)
