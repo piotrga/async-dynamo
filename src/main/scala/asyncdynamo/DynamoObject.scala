@@ -16,14 +16,14 @@
 
 package asyncdynamo
 
-import com.amazonaws.services.dynamodb.model.{KeySchemaElement, AttributeValue}
+import com.amazonaws.services.dynamodbv2.model.{KeySchemaElement, AttributeValue}
 
 trait DynamoObject[T]{
 
   protected implicit def toS(value : String) = new AttributeValue().withS(value)
   protected def toN[A: Numeric](number: A) =  new AttributeValue().withN(number.toString)
 
-  protected def key(attrName:String, attrType: String) = new KeySchemaElement().withAttributeName(attrName).withAttributeType(attrType)
+  protected def key(attrName:String, attrType: String) = new KeySchemaElement().withAttributeName(attrName).withKeyType(attrType)
 
   protected def table : String
   def toDynamo(t:T) : Map[String, AttributeValue]
@@ -32,7 +32,7 @@ trait DynamoObject[T]{
   def key: KeySchemaElement = key("id", "S")
   def range: Option[KeySchemaElement] = None
 
-  def asRangeAttribute(v: Any) : AttributeValue = range.getOrElse(sys.error("This table doesn't have range attribute")).getAttributeType match {
+  def asRangeAttribute(v: Any) : AttributeValue = range.getOrElse(sys.error("This table doesn't have range attribute")).getKeyType match {
       case "S" => new AttributeValue().withS(v.toString)
       case "N" => new AttributeValue().withN(v.toString)
       case aType => sys.error("Not supported range attribute type [%s]" format aType)

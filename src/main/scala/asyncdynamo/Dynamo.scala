@@ -17,12 +17,12 @@
 package asyncdynamo
 
 import akka.actor._
-import com.amazonaws.services.dynamodb.AmazonDynamoDBClient
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
 import com.amazonaws.ClientConfiguration
 import com.amazonaws.auth.BasicAWSCredentials
 import akka.routing.SmallestMailboxRouter
 import com.typesafe.config.ConfigFactory
-import com.amazonaws.services.dynamodb.model._
+import com.amazonaws.services.dynamodbv2.model._
 import akka.actor.Status.Failure
 import asyncdynamo.Operation.Type
 import concurrent.duration._
