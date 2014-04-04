@@ -16,34 +16,46 @@
 
 package asyncdynamo.nonblocking
 
-import com.amazonaws.services.dynamodb.AmazonDynamoDB
-import com.amazonaws.services.dynamodb.model._
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
+import com.amazonaws.services.dynamodbv2.model._
 import akka.actor.{ActorSystem, ActorRef}
 import akka.util.Timeout
 import scala.concurrent.duration._
 import asyncdynamo._
 import concurrent.{Promise, Future, Await}
 import util.{Failure, Success}
+import collection.JavaConversions._
 
 case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
   def execute(db: AmazonDynamoDB, tablePrefix:String) {
 
-
-    val keySchema = dyn.range match {
+    val keySchema: Seq[KeySchemaElement] = dyn.range match {
       case Some((range)) =>
-        new KeySchema().withHashKeyElement(dyn.key)
-        .withRangeKeyElement(range)
+        Seq(new KeySchemaElement()
+            .withAttributeName(dyn.key.schema.getAttributeName)
+            .withKeyType(dyn.key.schema.getKeyType),
+          new KeySchemaElement()
+            .withAttributeName(range.schema.getAttributeName)
+            .withKeyType(range.schema.getKeyType))
       case None =>
-        new KeySchema().withHashKeyElement(dyn.key)
+        Seq(new KeySchemaElement()
+          .withAttributeName(dyn.key.schema.getAttributeName)
+          .withKeyType(dyn.key.schema.getKeyType))
     }
+
+    val attribsDef = new AttributeDefinition()
+      .withAttributeName( dyn.key.getAttributeName )
+      .withAttributeType( dyn.key.)
 
     val provisionedThroughput = new ProvisionedThroughput()
       .withReadCapacityUnits(readThroughput)
       .withWriteCapacityUnits(writeThrougput)
 
+    println("keySchema " + keySchema)
+
     val request = new CreateTableRequest()
       .withTableName(dyn.table(tablePrefix))
-      .withKeySchema(keySchema)
+      .withKeySchema(keySchema.toList)
       .withProvisionedThroughput(provisionedThroughput)
     db.createTable(request)
   }

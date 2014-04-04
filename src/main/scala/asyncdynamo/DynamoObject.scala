@@ -16,21 +16,37 @@
 
 package asyncdynamo
 
-import com.amazonaws.services.dynamodbv2.model.{KeySchemaElement, AttributeValue}
+import com.amazonaws.services.dynamodbv2.model.{AttributeDefinition, KeyType, KeySchemaElement, AttributeValue}
+
+trait KeyAttrib {
+  def schema: KeySchemaElement
+  def attribDef: AttributeDefinition
+}
+
+object KeyAttrib {
+  def apply(sch: KeySchemaElement, attr: AttributeDefinition) : KeyAttrib = {
+
+    new KeyAttrib {
+      def schema = sch
+      def attribDef = attr
+    }
+  }
+}
 
 trait DynamoObject[T]{
 
   protected implicit def toS(value : String) = new AttributeValue().withS(value)
   protected def toN[A: Numeric](number: A) =  new AttributeValue().withN(number.toString)
 
-  protected def key(attrName:String, attrType: String) = new KeySchemaElement().withAttributeName(attrName).withKeyType(attrType)
+  protected def key(attrName:String, keyType: KeyType) = new KeySchemaElement().withAttributeName(attrName).withKeyType(keyType)
+  protected def attrib(attrName:String, attrType: String) = new AttributeDefinition().withAttributeName(attrName).withAttributeType(attrType)
 
   protected def table : String
   def toDynamo(t:T) : Map[String, AttributeValue]
   def fromDynamo(attributes: Map[String, AttributeValue]) : T
   def table(prefix: String): String = prefix + table
-  def key: KeySchemaElement = key("id", "S")
-  def range: Option[KeySchemaElement] = None
+  def key: KeyAttrib = KeyAttrib(key("id", "S", KeyType.HASH), attrib("id", "S") )
+  def range: Option[KeyAttrib] = None
 
   def asRangeAttribute(v: Any) : AttributeValue = range.getOrElse(sys.error("This table doesn't have range attribute")).getKeyType match {
       case "S" => new AttributeValue().withS(v.toString)

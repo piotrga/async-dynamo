@@ -108,29 +108,37 @@ case class DeleteByRange[T](id: String, range: Any, expected: Map[String,String]
 }
 
 case class Query[T](id: String, operator: Option[String], attributes: Seq[Any], limit : Int, exclusiveStartKey: Option[Map[String,AttributeValue]], consistentRead :Boolean)(implicit dyn:DynamoObject[T]) extends DbOperation[(Seq[T], Option[Map[String,AttributeValue]])]{
+
   def execute(db: AmazonDynamoDB, tablePrefix:String) : (Seq[T], Option[Map[String,AttributeValue]]) = {
 
-    val keyConditions: Map[String,dynamodbv2.model.Condition] = Map(id -> new Condition().withComparisonOperator("EQ"))
+    val hashCondition: Map[String,Condition] = Map(dyn.key.getAttributeName -> new Condition()
+      .withComparisonOperator("EQ")
+    .withAttributeValueList(new AttributeValue(id))
+    )
+
+    val rangeCondition: Map[String,Condition] = operator
+      .map( operator => Map(dyn.range.get.getAttributeName -> new Condition()
+        .withComparisonOperator(operator)
+        .withAttributeValueList(attributes.map(dyn.asRangeAttribute).asJava)))
+      .getOrElse(Map[String,Condition]())
+
+    val keyConditions: Map[String,Condition] =
+      (hashCondition.keySet ++ rangeCondition.keySet) map { i => i -> (hashCondition.get(i).toList ::: rangeCondition.get(i).toList).head } toMap
 
     val query = new dynamodbv2.model.QueryRequest()
       .withTableName(dyn.table(tablePrefix))
-      //.withHashKeyValue(new dynamodbv2.model.AttributeValue(id))
       .withKeyConditions(keyConditions.asJava)
       .withExclusiveStartKey(exclusiveStartKey getOrElse null)
       .withConsistentRead(consistentRead)
       .withLimit(limit)
-      .withRangeKeyCondition{ operator map ( operator => new Condition()
-        .withComparisonOperator(operator)
-        .withAttributeValueList(attributes.map(dyn.asRangeAttribute).asJava)) getOrElse null
-      }
-
 
     val result = db.query(query)
     val items = result.getItems.asScala.map {
       item => dyn.fromDynamo(item.asScala.toMap)
     }
-    val ff: Map[String,dynamodbv2.model.AttributeValue]=  result.getLastEvaluatedKey
-    (items, Option(result.getLastEvaluatedKey))
+
+    val ret: Map[String,AttributeValue] =  result.getLastEvaluatedKey.toMap
+    (items, Option(ret))
   }
 
   def blockingStream(implicit dynamo: ActorRef, pageTimeout: Timeout): Stream[T] = //TODO: use iteratees or some other magic to get rid of this blocking behaviour (Peter G. 31/10/2012)
@@ -146,13 +154,13 @@ case class Query[T](id: String, operator: Option[String], attributes: Seq[Any], 
 
   def run[A](iter:Iteratee[T,A])(implicit dynamo: ActorRef, pageTimeout: Timeout, execCtx :ExecutionContext) : Future[Iteratee[T,A]] = {
 
-    def nextBatch(token : Option[Key]) = this.copy(exclusiveStartKey = token).executeOn(dynamo)(pageTimeout)
+    def nextBatch(token : Option[Map[String,AttributeValue]]) = this.copy(exclusiveStartKey = token).executeOn(dynamo)(pageTimeout)
 
     pageAsynchronously2(nextBatch, iter)(new {def apply[X]()= Promise[X]()}, execCtx)
   }
 }
 
 object Query{
-  def apply[T](id: String, operator: String = null, attributes: Seq[Any] = Nil, limit : Int = Int.MaxValue, exclusiveStartKey: Key = null, consistentRead :Boolean = true)(implicit dyn:DynamoObject[T]) :Query[T]=
+  def apply[T](id: String, operator: String = null, attributes: Seq[Any] = Nil, limit : Int = Int.MaxValue, exclusiveStartKey: Map[String,AttributeValue] = null, consistentRead :Boolean = true)(implicit dyn:DynamoObject[T]) :Query[T]=
     Query(id, Option(operator), attributes, limit, Option(exclusiveStartKey), consistentRead)
 }

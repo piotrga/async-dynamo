@@ -20,7 +20,7 @@ import nonblocking.{CreateTable, TableExists}
 import org.scalatest.{BeforeAndAfterAll, Suite}
 import akka.util.Timeout
 import scala.concurrent.duration._
-import com.amazonaws.services.dynamodb.model.AttributeValue
+import com.amazonaws.services.dynamodbv2.model.AttributeValue
 
 object DynamoTestDataObjects{
   case class DynamoTestObject(id:String, someValue:String)
