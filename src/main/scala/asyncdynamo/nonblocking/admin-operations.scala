@@ -16,26 +16,36 @@
 
 package asyncdynamo.nonblocking
 
-import com.amazonaws.services.dynamodb.AmazonDynamoDB
-import com.amazonaws.services.dynamodb.model._
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
+import com.amazonaws.services.dynamodbv2.model._
 import akka.actor.{ActorSystem, ActorRef}
 import akka.util.Timeout
 import scala.concurrent.duration._
 import asyncdynamo._
 import concurrent.{Promise, Future, Await}
 import util.{Failure, Success}
+import collection.JavaConversions._
 
 case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
   def execute(db: AmazonDynamoDB, tablePrefix:String) {
 
+    val keySchemas: List[KeySchemaElement] = dyn.range match {
+      case Some((range)) =>
+        List(dyn.key, range)
+      case None =>
+        List(dyn.key)
+    }
 
-    val keySchema = dyn.range match {
+    /*val keySchema = dyn.range match {
       case Some((range)) =>
         new KeySchema().withHashKeyElement(dyn.key)
         .withRangeKeyElement(range)
       case None =>
         new KeySchema().withHashKeyElement(dyn.key)
-    }
+    }*/
+
+    val gg = dyn.toDynamo(T)("").
+    new AttributeDefinition(dyn.key.getAttributeName, dyn.key.getKeyType)
 
     val provisionedThroughput = new ProvisionedThroughput()
       .withReadCapacityUnits(readThroughput)
@@ -43,8 +53,9 @@ case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(imp
 
     val request = new CreateTableRequest()
       .withTableName(dyn.table(tablePrefix))
-      .withKeySchema(keySchema)
+      .withKeySchema( seqAsJavaList(keySchemas) )
       .withProvisionedThroughput(provisionedThroughput)
+      .withAttributeDefinitions()
     db.createTable(request)
   }
 

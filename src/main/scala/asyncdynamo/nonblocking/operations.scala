@@ -119,18 +119,16 @@ case class Query[T](id: String, operator: Option[String], attributes: Seq[Any], 
       .withExclusiveStartKey(exclusiveStartKey getOrElse null)
       .withConsistentRead(consistentRead)
       .withLimit(limit)
-      .withRangeKeyCondition{ operator map ( operator => new Condition()
-        .withComparisonOperator(operator)
-        .withAttributeValueList(attributes.map(dyn.asRangeAttribute).asJava)) getOrElse null
-      }
-
+    /*.withRangeKeyCondition{ operator map ( operator => new Condition()
+      .withComparisonOperator(operator)
+      .withAttributeValueList(attributes.map(dyn.asRangeAttribute).asJava)) getOrElse null
+    }*/
 
     val result = db.query(query)
     val items = result.getItems.asScala.map {
       item => dyn.fromDynamo(item.asScala.toMap)
     }
-    val ff: Map[String,dynamodbv2.model.AttributeValue]=  result.getLastEvaluatedKey
-    (items, Option(result.getLastEvaluatedKey))
+    (items, Option(result.getLastEvaluatedKey.toMap))
   }
 
   def blockingStream(implicit dynamo: ActorRef, pageTimeout: Timeout): Stream[T] = //TODO: use iteratees or some other magic to get rid of this blocking behaviour (Peter G. 31/10/2012)
@@ -146,13 +144,13 @@ case class Query[T](id: String, operator: Option[String], attributes: Seq[Any], 
 
   def run[A](iter:Iteratee[T,A])(implicit dynamo: ActorRef, pageTimeout: Timeout, execCtx :ExecutionContext) : Future[Iteratee[T,A]] = {
 
-    def nextBatch(token : Option[Key]) = this.copy(exclusiveStartKey = token).executeOn(dynamo)(pageTimeout)
+    def nextBatch(token : Option[Map[String,AttributeValue]]) = this.copy(exclusiveStartKey = token).executeOn(dynamo)(pageTimeout)
 
     pageAsynchronously2(nextBatch, iter)(new {def apply[X]()= Promise[X]()}, execCtx)
   }
 }
 
 object Query{
-  def apply[T](id: String, operator: String = null, attributes: Seq[Any] = Nil, limit : Int = Int.MaxValue, exclusiveStartKey: Key = null, consistentRead :Boolean = true)(implicit dyn:DynamoObject[T]) :Query[T]=
-    Query(id, Option(operator), attributes, limit, Option(exclusiveStartKey), consistentRead)
+  def apply[T](id: String, operator: String = null, attributes: Seq[Any] = Nil, limit : Int = Int.MaxValue, exclusiveStartKey: Option[Map[String,AttributeValue]] = null, consistentRead :Boolean = true)(implicit dyn:DynamoObject[T]) :Query[T]=
+    Query(id, Option(operator), attributes, limit, exclusiveStartKey, consistentRead)
 }
