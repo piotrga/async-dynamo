@@ -1,7 +1,7 @@
 package asyncdynamo
 
 import akka.actor.ActorSystem
-import com.amazonaws.services.dynamodb.model.ProvisionedThroughputExceededException
+import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughputExceededException
 import concurrent.duration.FiniteDuration
 
 trait ThrottlingRecoveryStrategy{

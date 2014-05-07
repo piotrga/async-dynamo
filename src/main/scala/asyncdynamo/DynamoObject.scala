@@ -16,28 +16,36 @@
 
 package asyncdynamo
 
-import com.amazonaws.services.dynamodb.model.{KeySchemaElement, AttributeValue}
+import com.amazonaws.services.dynamodbv2.model.{AttributeDefinition, KeyType, KeySchemaElement, AttributeValue}
 
 trait DynamoObject[T]{
 
   protected implicit def toS(value : String) = new AttributeValue().withS(value)
   protected def toN[A: Numeric](number: A) =  new AttributeValue().withN(number.toString)
 
-  protected def key(attrName:String, attrType: String) = new KeySchemaElement().withAttributeName(attrName).withAttributeType(attrType)
+  type KeyDefinition = Tuple2[String,String]
+  protected def hashKey: KeyDefinition
+  protected def rangeKey: Option[KeyDefinition] = None
 
   protected def table : String
   def toDynamo(t:T) : Map[String, AttributeValue]
   def fromDynamo(attributes: Map[String, AttributeValue]) : T
   def table(prefix: String): String = prefix + table
-  def key: KeySchemaElement = key("id", "S")
-  def range: Option[KeySchemaElement] = None
 
-  def asRangeAttribute(v: Any) : AttributeValue = range.getOrElse(sys.error("This table doesn't have range attribute")).getAttributeType match {
-      case "S" => new AttributeValue().withS(v.toString)
-      case "N" => new AttributeValue().withN(v.toString)
-      case aType => sys.error("Not supported range attribute type [%s]" format aType)
+  def hashSchema: KeySchemaElement = new KeySchemaElement().withAttributeName(hashKey._1).withKeyType(KeyType.HASH)
+  def hashAttrib: AttributeDefinition = new AttributeDefinition().withAttributeName(hashKey._1).withAttributeType(hashKey._2)
+
+  def rangeSchema: Option[KeySchemaElement] = rangeKey.map(key => Some(new KeySchemaElement().withAttributeName(key._1).withKeyType(KeyType.RANGE))).getOrElse(None)
+  def rangeAttrib: Option[AttributeDefinition] = rangeKey.map(key => Some(new AttributeDefinition().withAttributeName(key._1).withAttributeType(key._2))).getOrElse(None)
+
+  protected def asAttribute(v: Any, keyType: String): AttributeValue = keyType match {
+    case "S" => new AttributeValue().withS(v.toString)
+    case "N" => new AttributeValue().withN(v.toString)
+    case aType => sys.error("Not supported attribute type [%s]" format aType)
   }
 
+  def asHashAttribute(v: Any): AttributeValue = asAttribute(v, hashKey._2)
+  def asRangeAttribute(v: Any): AttributeValue = asAttribute(v, rangeKey.getOrElse(sys.error("This table doesn't have range attribute"))._2)
 }
 
 object DynamoObject {
@@ -71,7 +79,8 @@ object DynamoObject {
       def fromDynamo(attributes: Map[String, AttributeValue]) = construct(names.map{ name => attributes.get(name).map(_.getS).getOrElse(null)})
       def toDynamo(t: T) = names.zipWithIndex.filter{ case(name,i) => t.productElement(i) != null }.map {case (name, i) => (name, new AttributeValue().withS(t.productElement(i).toString))}.toMap
 
-      override def key = key(keyName, "S")
+      override def hashKey = (keyName, "S")
+      override def rangeKey = None
       protected def table = className
     }
   }
