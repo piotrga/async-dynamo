@@ -24,10 +24,12 @@ import com.amazonaws.services.dynamodbv2.model.AttributeValue
 
 object DynamoTestDataObjects{
   case class DynamoTestObject(id:String, someValue:String)
-
   implicit object DynamoTestDO extends DynamoObject[DynamoTestObject]{
     def toDynamo(t: DynamoTestObject) = Map("id"->t.id, "someValue"->t.someValue)
     def fromDynamo(a: Map[String, AttributeValue]) = DynamoTestObject(a("id").getS, a("someValue").getS)
+
+    override def hashKey = ("id", "S")
+
     protected val table = "%s_dynamotest" format Option(System.getenv("USER")).getOrElse("unknown")
   }
 
@@ -36,7 +38,9 @@ object DynamoTestDataObjects{
     def toDynamo(t: DynamoTestWithRangeObject) = Map("id"->t.id, "rangeValue"->t.rangeValue, "otherValue" -> t.otherValue)
     def fromDynamo(a: Map[String, AttributeValue]) = DynamoTestWithRangeObject(a("id").getS, a("rangeValue").getS, a("otherValue").getS)
     protected val table = "%s_dynamotest_withrange" format Option(System.getenv("USER")).getOrElse("unknown")
-    override val range = Some(key("rangeValue", "S"))
+
+    override def hashKey = ("id", "S")
+    override def rangeKey = Some(("rangeValue", "S"))
   }
 
   case class DynamoTestWithNumericRangeObject(id:String, rangeValue:Int, otherValue: String)
@@ -44,13 +48,18 @@ object DynamoTestDataObjects{
     def toDynamo(t: DynamoTestWithNumericRangeObject) = Map("id"->t.id, "rangeValue"->toN(t.rangeValue), "otherValue" -> t.otherValue)
     def fromDynamo(a: Map[String, AttributeValue]) = DynamoTestWithNumericRangeObject(a("id").getS, a("rangeValue").getN.toInt, a("otherValue").getS)
     protected val table = "%s_dynamotest_with_numeric_range" format Option(System.getenv("USER")).getOrElse("unknown")
-    override val range = Some(key("rangeValue", "N"))
+
+    override def hashKey = ("id", "S")
+    override def rangeKey = Some(("rangeValue", "N"))
   }
 
   case class Broken(id:String)
   implicit object BrokenDO extends DynamoObject[Broken]{
     def toDynamo(t: Broken) = Map()
     def fromDynamo(a: Map[String, AttributeValue]) = Broken("wiejfi")
+
+    override def hashKey = ("id", "S")
+
     protected def table = "nonexistenttable"
   }
 }

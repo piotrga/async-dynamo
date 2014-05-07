@@ -29,11 +29,18 @@ import collection.JavaConversions._
 case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
   def execute(db: AmazonDynamoDB, tablePrefix:String) {
 
-    val keySchemas: List[KeySchemaElement] = dyn.range match {
+    val keySchemas: List[KeySchemaElement] = dyn.rangeSchema match {
       case Some((range)) =>
-        List(dyn.key, range)
+        List(dyn.hashSchema, range)
       case None =>
-        List(dyn.key)
+        List(dyn.hashSchema)
+    }
+
+    val keyAttribs: List[AttributeDefinition] = dyn.rangeAttrib match {
+      case Some((rangeAttrib)) =>
+        List(dyn.hashAttrib, rangeAttrib)
+      case None =>
+        List(dyn.hashAttrib)
     }
 
     /*val keySchema = dyn.range match {
@@ -44,9 +51,6 @@ case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(imp
         new KeySchema().withHashKeyElement(dyn.key)
     }*/
 
-    val gg = dyn.toDynamo(T)("").
-    new AttributeDefinition(dyn.key.getAttributeName, dyn.key.getKeyType)
-
     val provisionedThroughput = new ProvisionedThroughput()
       .withReadCapacityUnits(readThroughput)
       .withWriteCapacityUnits(writeThrougput)
@@ -55,7 +59,8 @@ case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(imp
       .withTableName(dyn.table(tablePrefix))
       .withKeySchema( seqAsJavaList(keySchemas) )
       .withProvisionedThroughput(provisionedThroughput)
-      .withAttributeDefinitions()
+      .withAttributeDefinitions(keyAttribs)
+
     db.createTable(request)
   }
 
