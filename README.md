@@ -58,6 +58,9 @@ If you need more flexibility when mapping your object to Dynamo table you can de
 
     implicit val AccoundDO : DynamoObject[Account] = new DynamoObject[Account]{
         val table = "account"
+
+        override def hashKey = ("id", "S")
+
         def toDynamo( a : Account)  = Map( "id" -> a.id,
                   "balance" -> a.balance.toString,
                   "lastModified" -> formatter.toString(a.lastModified )
