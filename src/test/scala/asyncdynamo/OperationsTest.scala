@@ -17,7 +17,7 @@
 package asyncdynamo
 
 import functional.Done
-import nonblocking.{CreateTable, Query}
+import nonblocking.{CreateTable, Query, Scan, ColumnCondition}
 import org.scalatest.matchers.MustMatchers
 import org.scalatest.FreeSpec
 import java.util.UUID
@@ -26,6 +26,7 @@ import asyncdynamo.blocking._
 import akka.actor.{Actor, Props, ActorSystem}
 import concurrent.{Future, Await}
 import scala.concurrent.ExecutionContext.Implicits.global
+import com.amazonaws.services.dynamodbv2.model.{ComparisonOperator, ScalarAttributeType}
 
 
 class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSupport{
@@ -37,6 +38,15 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
       case msg => println("EVENT_STREAM: " + msg)
     }
   }))
+
+  import scala.concurrent.duration._
+  private def givenTestObjectsInDb(n: Int) : Seq[DynamoTestWithRangeObject] = {
+    val id = UUID.randomUUID().toString
+    Await.result(
+      Future.sequence(
+        (1 to n) map (i => nonblocking.Save(DynamoTestWithRangeObject(id, i.toString , "value "+i)).executeOn(dynamo)(n * 5 seconds))
+      ), n * 5 seconds )
+  }
 
   dynamo ! ('addListener, listener)
   createTables()
@@ -81,15 +91,6 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
 
     Query[DynamoTestWithRangeObject](id, "GT", List("0")).blockingStream must (contain(obj1) and contain(obj2))
     Query[DynamoTestWithRangeObject](id, "GT", List("1")).blockingStream must (contain(obj2) and not(contain(obj1)) )
-  }
-
-  import scala.concurrent.duration._
-  private def givenTestObjectsInDb(n: Int) : Seq[DynamoTestWithRangeObject] = {
-    val id = UUID.randomUUID().toString
-    Await.result(
-      Future.sequence(
-        (1 to n) map (i => nonblocking.Save(DynamoTestWithRangeObject(id, i.toString , "value "+i)).executeOn(dynamo)(n * 5 seconds))
-      ), n * 5 seconds )
   }
 
   "Query works for more than 100 elements" in {
@@ -159,6 +160,19 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     nonblocking.DeleteByRange[DynamoTestWithRangeObject](id, range = "1", expected = Map("otherValue" -> "value 1")) blockingExecute
 
     Query[DynamoTestWithRangeObject](id, "EQ", List("1")).blockingStream must be ('empty)
+  }
+
+  {
+    val N = 150
+    val objs = givenTestObjectsInDb(N)
+    val id = objs(0).id
+    val colConditions = Seq(
+      ColumnCondition("id", ScalarAttributeType.S, ComparisonOperator.EQ,id),
+      ColumnCondition("rangeValue", ScalarAttributeType.S, ComparisonOperator.GT,"0"))
+
+    "Scan works for more than 100 elements" in {
+      Scan[DynamoTestWithRangeObject](colConditions).blockingStream.size must be(N)
+    }
   }
 
   private def assertCanSaveGetObject() {

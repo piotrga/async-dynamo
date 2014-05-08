@@ -19,10 +19,6 @@ package asyncdynamo.nonblocking
 import scala.collection.JavaConverters._
 import com.amazonaws.services.dynamodbv2.model._
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
-import com.amazonaws.services.dynamodbv2.model.AttributeValue
-import com.amazonaws.services.dynamodbv2.model.PutItemRequest
-import com.amazonaws.services.dynamodbv2.model.ScanRequest
-import com.amazonaws.services.dynamodbv2.model.DeleteItemRequest
 import com.amazonaws.services.dynamodbv2
 import asyncdynamo.{ThirdPartyException, functional, DynamoObject, DbOperation}
 import akka.actor.{ActorRef}
@@ -31,6 +27,10 @@ import asyncdynamo.functional._
 import asyncdynamo.functional.Iteratee._
 import concurrent.{ExecutionContext, Future, Promise}
 import collection.JavaConversions._
+import scala.Tuple3
+import scala.Some
+import scala.Tuple3
+import scala.Some
 
 case class Save[T ](o : T)(implicit dyn:DynamoObject[T]) extends DbOperation[T]{
   def execute(db: AmazonDynamoDB, tablePrefix:String) : T = {
@@ -101,6 +101,59 @@ case class DeleteByRange[T](id: String, range: Any, expected: Map[String,String]
 
   override def toString = "DeleteByRange[%s](%s)" format (dyn.table(""), super.toString)
 
+}
+
+case class ColumnCondition(columnName: String, dataType: ScalarAttributeType, operator: ComparisonOperator, value: String) {
+  def toConditionTuple(): Tuple2[String, Condition] = {
+    val cond = new Condition()
+      .withComparisonOperator(operator)
+      .withAttributeValueList( DynamoObject.asAttribute(value,dataType))
+    (columnName, cond)
+  }
+}
+
+case class Scan[T](conditions: Seq[ColumnCondition], exclusiveStartKey: Option[Map[String,AttributeValue]] = None)(implicit dyn:DynamoObject[T]) extends DbOperation[(Seq[T], Option[Map[String,AttributeValue]])] {
+
+  def execute(db: AmazonDynamoDB, tablePrefix:String) : (Seq[T], Option[Map[String,AttributeValue]]) = {
+    val condSeq = for (condition <- conditions) yield condition.toConditionTuple()
+    val scanFilter = condSeq.toMap
+
+    val scanRequest = new ScanRequest()
+      .withTableName(dyn.table(tablePrefix))
+      .withScanFilter(scanFilter)
+      .withReturnConsumedCapacity("TOTAL")
+
+    exclusiveStartKey.map(key => scanRequest.setExclusiveStartKey(key.asJava))
+
+    val result = db.scan(scanRequest)
+    val items = result.getItems.asScala.map {
+      item => dyn.fromDynamo(item.asScala.toMap)
+    }
+
+    val lastEvaluatedKey = if (result.getLastEvaluatedKey != null)
+      Option(result.getLastEvaluatedKey.toMap)
+    else
+      None
+
+    (items, lastEvaluatedKey)
+  }
+
+  def blockingStream(implicit dynamo: ActorRef, pageTimeout: Timeout): Stream[T] = //TODO: use iteratees or some other magic to get rid of this blocking behaviour (Peter G. 31/10/2012)
+    functional.unfold[Scan[T], Seq[T]](this){
+      query =>
+        val (resultChunk, lastKey) = query.blockingExecute
+        lastKey match{
+          case None => (None, resultChunk)
+          case key@Some(_) => (Some(query.copy(exclusiveStartKey = key)), resultChunk)
+        }
+    }.flatten
+
+
+  def run[A](iter:Iteratee[T,A])(implicit dynamo: ActorRef, pageTimeout: Timeout, execCtx :ExecutionContext) : Future[Iteratee[T,A]] = {
+
+    def nextBatch(token : Option[Map[String,AttributeValue]]) = this.copy(exclusiveStartKey = token).executeOn(dynamo)(pageTimeout)
+    pageAsynchronously2(nextBatch, iter)(new {def apply[X]()= Promise[X]()}, execCtx)
+  }
 }
 
 case class Query[T](id: String, operator: Option[String], attributes: Seq[Any], limit : Int, exclusiveStartKey: Option[Map[String,AttributeValue]], consistentRead :Boolean)(implicit dyn:DynamoObject[T]) extends DbOperation[(Seq[T], Option[Map[String,AttributeValue]])]{

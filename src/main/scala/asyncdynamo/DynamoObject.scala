@@ -16,7 +16,9 @@
 
 package asyncdynamo
 
-import com.amazonaws.services.dynamodbv2.model.{AttributeDefinition, KeyType, KeySchemaElement, AttributeValue}
+import com.amazonaws.services.dynamodbv2.model._
+import scala.Some
+import scala.Tuple2
 
 trait DynamoObject[T]{
 
@@ -38,14 +40,8 @@ trait DynamoObject[T]{
   def rangeSchema: Option[KeySchemaElement] = rangeKey.map(key => Some(new KeySchemaElement().withAttributeName(key._1).withKeyType(KeyType.RANGE))).getOrElse(None)
   def rangeAttrib: Option[AttributeDefinition] = rangeKey.map(key => Some(new AttributeDefinition().withAttributeName(key._1).withAttributeType(key._2))).getOrElse(None)
 
-  protected def asAttribute(v: Any, keyType: String): AttributeValue = keyType match {
-    case "S" => new AttributeValue().withS(v.toString)
-    case "N" => new AttributeValue().withN(v.toString)
-    case aType => sys.error("Not supported attribute type [%s]" format aType)
-  }
-
-  def asHashAttribute(v: Any): AttributeValue = asAttribute(v, hashKey._2)
-  def asRangeAttribute(v: Any): AttributeValue = asAttribute(v, rangeKey.getOrElse(sys.error("This table doesn't have range attribute"))._2)
+  def asHashAttribute(v: Any): AttributeValue = DynamoObject.asAttribute(v, hashKey._2)
+  def asRangeAttribute(v: Any): AttributeValue = DynamoObject.asAttribute(v, rangeKey.getOrElse(sys.error("This table doesn't have range attribute"))._2)
 }
 
 object DynamoObject {
@@ -102,6 +98,14 @@ object DynamoObject {
       case ex : Throwable => throw new RuntimeException("Cannot automatically determine case class field names and order " +
         "for '" + clazz.getName + "', please use the 'jsonFormat' overload with explicit field name specification", ex)
     }
+  }
+
+  def asAttribute(v: Any, keyType: ScalarAttributeType): AttributeValue = asAttribute(v, keyType.toString)
+
+  def asAttribute(v: Any, keyType: String): AttributeValue = keyType match {
+    case "S" => new AttributeValue().withS(v.toString)
+    case "N" => new AttributeValue().withN(v.toString)
+    case aType => sys.error("Not supported attribute type [%s]" format aType)
   }
 }
 
