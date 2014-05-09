@@ -17,7 +17,7 @@
 package asyncdynamo
 
 import functional.Done
-import nonblocking.{CreateTable, Query, Scan, ColumnCondition}
+import asyncdynamo.nonblocking._
 import org.scalatest.matchers.MustMatchers
 import org.scalatest.FreeSpec
 import java.util.UUID
@@ -27,6 +27,12 @@ import akka.actor.{Actor, Props, ActorSystem}
 import concurrent.{Future, Await}
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.amazonaws.services.dynamodbv2.model.{ComparisonOperator, ScalarAttributeType}
+import asyncdynamo.nonblocking.Scan
+import asyncdynamo.functional.Done
+import asyncdynamo.blocking.DeleteById
+import asyncdynamo.blocking.Read
+import asyncdynamo.blocking.Save
+import asyncdynamo.nonblocking.ColumnCondition
 
 
 class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSupport{
@@ -173,6 +179,34 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     "Scan works for more than 100 elements" in {
       Scan[DynamoTestWithRangeObject](colConditions).blockingStream.size must be(N)
     }
+
+    "Batch delete works with range table" in {
+      Query[DynamoTestWithRangeObject](objs(0).id).blockingStream must not be ('empty)
+
+      val idAndRangePairs = for (obj <- objs) yield (obj.id,Some(obj.rangeValue))
+      BatchDeleteById[DynamoTestWithRangeObject](idAndRangePairs) blockingExecute
+
+      Query[DynamoTestWithRangeObject](objs(0).id).blockingStream must be ('empty)
+    }
+  }
+
+  "Batch delete works with non-range table" in {
+
+    val obj1 = DynamoTestObject(UUID.randomUUID().toString, "some test value" + math.random)
+    Save(obj1)
+    val obj2 = DynamoTestObject(UUID.randomUUID().toString, "some test value" + math.random)
+    Save(obj2)
+    val obj3 = DynamoTestObject(UUID.randomUUID().toString, "some test value" + math.random)
+    Save(obj3)
+
+    Query[DynamoTestObject](obj1.id).blockingStream must not be ('empty)
+
+    val idAndRangePairs = Seq((obj1.id,None), (obj2.id,None), (obj3.id,None))
+    BatchDeleteById[DynamoTestObject](idAndRangePairs) blockingExecute
+
+    Query[DynamoTestObject](obj1.id).blockingStream must be ('empty)
+    Query[DynamoTestObject](obj2.id).blockingStream must be ('empty)
+    Query[DynamoTestObject](obj3.id).blockingStream must be ('empty)
   }
 
   private def assertCanSaveGetObject() {

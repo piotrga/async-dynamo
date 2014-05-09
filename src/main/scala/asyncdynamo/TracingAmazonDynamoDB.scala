@@ -169,9 +169,11 @@ private class TracingAmazonDynamoDB(delegate  : AmazonDynamoDB, eventStream : Ev
   def batchWriteItem(batchWriteItemRequest: BatchWriteItemRequest) = {
     val (res, duration) = time(delegate.batchWriteItem(batchWriteItemRequest))
 
-    val consumption = res.getItemCollectionMetrics.zip(res.getConsumedCapacity)
-    consumption foreach {case ((tableName, r), capacityConsumed) =>
-      pub(DynamoRequestExecuted(Operation(tableName, Write, "BatchWriteItem"), writeUnits = capacityConsumed.getCapacityUnits, duration = duration))
+    if (res.getItemCollectionMetrics != null) {
+      val consumption = res.getItemCollectionMetrics.zip(res.getConsumedCapacity)
+      consumption foreach {case ((tableName, r), capacityConsumed) =>
+        pub(DynamoRequestExecuted(Operation(tableName, Write, "BatchWriteItem"), writeUnits = capacityConsumed.getCapacityUnits, duration = duration))
+      }
     }
     res
   }

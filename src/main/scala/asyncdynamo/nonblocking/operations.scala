@@ -103,6 +103,46 @@ case class DeleteByRange[T](id: String, range: Any, expected: Map[String,String]
 
 }
 
+case class BatchDeleteById[T](idAndRangePairs: Seq[Tuple2[String,Option[Any]]])(implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
+  def execute(db: AmazonDynamoDB, tablePrefix:String){
+
+    val threadList = for (idAndRangePair <- idAndRangePairs) yield {
+
+      val key = idAndRangePair._2 match {
+        case Some(rangeValue) => Map(dyn.hashSchema.getAttributeName -> dyn.asHashAttribute(idAndRangePair._1), dyn.rangeSchema.get.getAttributeName -> dyn.asRangeAttribute(rangeValue))
+        case None => Map(dyn.hashSchema.getAttributeName -> dyn.asHashAttribute(idAndRangePair._1))
+      }
+
+      new WriteRequest().withDeleteRequest(new DeleteRequest().withKey(key))
+    }
+
+    val batchJob = new BatchWriteItemRequest().withReturnConsumedCapacity(ReturnConsumedCapacity.TOTAL)
+
+    def twentyFiveAtATime(first25: Seq[WriteRequest], rest: Seq[WriteRequest]): Unit = {
+      if (rest.size > 0) {
+        processRequestItems(Map(dyn.table(tablePrefix) -> first25.asJava))
+        twentyFiveAtATime(rest.take(25), rest.drop(25))
+      }
+      else
+        processRequestItems(Map(dyn.table(tablePrefix) -> first25.asJava))
+    }
+
+    def processRequestItems(requestItems: java.util.Map[String,java.util.List[WriteRequest]]): Unit = {
+      batchJob.withRequestItems(requestItems)
+      val result = db.batchWriteItem(batchJob)
+      val remainingRequestItems = result.getUnprocessedItems()
+
+      // Check for unprocessed keys which could happen if you exceed provisioned throughput
+      if (remainingRequestItems.size() > 0)
+        processRequestItems(remainingRequestItems)
+    }
+
+    twentyFiveAtATime(threadList.take(25), threadList.drop(25))
+  }
+
+  override def toString = "DeleteByRange[%s](%s)" format (dyn.table(""), super.toString)
+}
+
 case class ColumnCondition(columnName: String, dataType: ScalarAttributeType, operator: ComparisonOperator, value: String) {
   def toConditionTuple(): Tuple2[String, Condition] = {
     val cond = new Condition()
