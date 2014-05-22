@@ -61,6 +61,20 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     assertCanSaveGetObject()
   }
 
+  "Can update values in an existing record" in {
+    val obj = DynamoTestObject(UUID.randomUUID().toString, "some test value" + math.random)
+    Save(obj)
+
+    val saved = Read[DynamoTestObject](obj.id).get
+    assert(saved === obj)
+
+    val objNew = DynamoTestObject(obj.id, "some new test value" + math.random)
+    Update(objNew.id, objNew).blockingExecute
+
+    val updated = Read[DynamoTestObject](objNew.id).get
+    assert(updated === objNew)
+  }
+
   "Get returns None if record not found" in {
     assert( Read[DynamoTestObject](UUID.randomUUID().toString) === None )
   }

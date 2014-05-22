@@ -39,7 +39,19 @@ case class Save[T ](o : T)(implicit dyn:DynamoObject[T]) extends DbOperation[T]{
   }
 
   override def toString = "Save[%s](%s)" format (dyn.table(""), o)
+}
 
+case class Update[T ](id:String, o : T)(implicit dyn:DynamoObject[T]) extends DbOperation[T]{
+  def execute(db: AmazonDynamoDB, tablePrefix:String) : T = {
+
+    val attribsMinusHashKey = dyn.toDynamo(o).filter( attribPair => attribPair._1 != dyn.hashSchema.getAttributeName)
+    val convertToAttribUpdates: Map[String,AttributeValueUpdate] = attribsMinusHashKey.map( attribPair => (attribPair._1, new AttributeValueUpdate(attribPair._2, AttributeAction.PUT) ))
+
+    val results = db.updateItem(new UpdateItemRequest(dyn.table(tablePrefix), Map(dyn.hashSchema.getAttributeName -> new AttributeValue(id)).asJava, convertToAttribUpdates.asJava).withReturnConsumedCapacity("TOTAL"))
+    o
+  }
+
+  override def toString = "Update[%s](%s)" format (dyn.table(""), o)
 }
 
 case class Read[T](id:String, consistentRead : Boolean = true)(implicit dyn:DynamoObject[T]) extends DbOperation[Option[T]]{
