@@ -27,10 +27,8 @@ import asyncdynamo.functional._
 import asyncdynamo.functional.Iteratee._
 import concurrent.{ExecutionContext, Future, Promise}
 import collection.JavaConversions._
-import scala.Tuple3
 import scala.Some
-import scala.Tuple3
-import scala.Some
+import scala.collection.JavaConversions._
 
 case class Save[T ](o : T)(implicit dyn:DynamoObject[T]) extends DbOperation[T]{
   def execute(db: AmazonDynamoDB, tablePrefix:String) : T = {
@@ -47,8 +45,8 @@ case class Update[T ](id:String, o : T)(implicit dyn:DynamoObject[T]) extends Db
     val attribsMinusHashKey = dyn.toDynamo(o).filter( attribPair => attribPair._1 != dyn.hashSchema.getAttributeName)
     val convertToAttribUpdates: Map[String,AttributeValueUpdate] = attribsMinusHashKey.map( attribPair => (attribPair._1, new AttributeValueUpdate(attribPair._2, AttributeAction.PUT) ))
 
-    val results = db.updateItem(new UpdateItemRequest(dyn.table(tablePrefix), Map(dyn.hashSchema.getAttributeName -> new AttributeValue(id)).asJava, convertToAttribUpdates.asJava).withReturnConsumedCapacity("TOTAL"))
-    o
+    val results = db.updateItem(new UpdateItemRequest(dyn.table(tablePrefix), Map(dyn.hashSchema.getAttributeName -> new AttributeValue(id)).asJava, convertToAttribUpdates.asJava).withReturnConsumedCapacity("TOTAL").withReturnValues(ReturnValue.ALL_NEW))
+    dyn.fromDynamo(results.getAttributes.toMap)
   }
 
   override def toString = "Update[%s](%s)" format (dyn.table(""), o)
