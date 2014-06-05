@@ -22,7 +22,6 @@ import org.scalatest.matchers.MustMatchers
 import org.scalatest.FreeSpec
 import java.util.UUID
 
-import asyncdynamo.blocking._
 import akka.actor.{Actor, Props, ActorSystem}
 import concurrent.{Future, Await}
 import scala.concurrent.ExecutionContext.Implicits.global
