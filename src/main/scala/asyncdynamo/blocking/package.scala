@@ -18,11 +18,13 @@ package asyncdynamo
 
 import akka.actor.ActorRef
 import akka.util.Timeout
+import com.amazonaws.services.dynamodbv2.model.AttributeValue
+import asyncdynamo.nonblocking.ColumnCondition
 
 package object blocking {
   def Read[T](id: String, range: Option[String] = None)(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.Read(id,range).blockingExecute
 
-  def ListAll[T](limit: Int)(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.ListAll(limit).blockingExecute
+  def Scan[T](conditions: Seq[ColumnCondition], exclusiveStartKey: Option[Map[String,AttributeValue]])(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.Scan(conditions, exclusiveStartKey).blockingExecute
 
   def Save[T](o: T)(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.Save(o).blockingExecute
 

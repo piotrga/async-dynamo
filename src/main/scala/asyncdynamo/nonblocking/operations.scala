@@ -81,14 +81,6 @@ case class Read[T](id:String, range: Option[String] = None, consistentRead : Boo
   override def toString = "Read[%s](id=%s, consistentRead=%s" format (dyn.table(""), id, consistentRead)
 }
 
-case class ListAll[T](limit : Int)(implicit dyn:DynamoObject[T]) extends DbOperation[Seq[T]]{
-  def execute(db: AmazonDynamoDB, tablePrefix:String) : Seq[T] = {
-    db.scan(new ScanRequest(dyn.table(tablePrefix)).withLimit(limit).withReturnConsumedCapacity("TOTAL")).getItems.asScala.map {
-      item => dyn.fromDynamo(item.asScala.toMap)
-    }
-  }
-}
-
 case class DeleteAll[T](implicit dyn:DynamoObject[T]) extends DbOperation[Int]{
   def execute(db: AmazonDynamoDB, tablePrefix:String) : Int = {
     if (dyn.rangeSchema.isDefined) throw new ThirdPartyException("DeleteAll works only for tables without range attribute")
