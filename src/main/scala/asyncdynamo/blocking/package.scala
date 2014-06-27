@@ -30,7 +30,9 @@ package object blocking {
 
   def Update[T](id: String, o: T, range: Option[String] = None)(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.Update(id, o, range).blockingExecute
 
-  def DeleteById[T](id: String)(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.DeleteById(id).blockingExecute
+  def DeleteById[T](id: String, expected: Map[String,String] = Map.empty, retrieveBeforeDelete: Boolean = false)(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.DeleteById(id, expected, retrieveBeforeDelete).blockingExecute
+
+  def DeleteByRange[T](id: String, range: Any, expected: Map[String,String] = Map.empty, retrieveBeforeDelete: Boolean = false)(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.DeleteByRange(id, range, expected, retrieveBeforeDelete).blockingExecute
 
   def DeleteAll[T]()(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.DeleteAll().blockingExecute
 

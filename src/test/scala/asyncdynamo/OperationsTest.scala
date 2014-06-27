@@ -25,7 +25,7 @@ import java.util.UUID
 import akka.actor.{Actor, Props, ActorSystem}
 import concurrent.{Future, Await}
 import scala.concurrent.ExecutionContext.Implicits.global
-import com.amazonaws.services.dynamodbv2.model.{ComparisonOperator, ScalarAttributeType}
+import com.amazonaws.services.dynamodbv2.model.{ConditionalCheckFailedException, ComparisonOperator, ScalarAttributeType}
 import asyncdynamo.functional.Done
 import asyncdynamo.blocking.DeleteById
 import asyncdynamo.blocking.Read
@@ -120,14 +120,6 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     assertCanSaveGetObject()
   }
 
-  "Delete" in {
-    val obj = DynamoTestObject(UUID.randomUUID().toString, "some test value" + math.random)
-    Save(obj)
-    DeleteById[DynamoTestObject](obj.id)
-
-    Read[DynamoTestObject](obj.id) must be ('empty)
-  }
-
   "Query with range" in {
     val id = UUID.randomUUID().toString
     val obj1 = DynamoTestWithRangeObject(id, "1", "value 1")
@@ -187,14 +179,72 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     Query[DynamoTestWithRangeObject](objs(0).id).blockingStream must (contain(objs(0)) and contain(objs(1)) and contain(objs(2)))
   }
 
+  "Delete" in {
+    val obj = DynamoTestObject(UUID.randomUUID().toString, "some test value" + math.random)
+    Save(obj)
+    DeleteById[DynamoTestObject](obj.id)
+
+    Read[DynamoTestObject](obj.id) must be ('empty)
+  }
+
+  "Delete return deleted item" in {
+    val obj = DynamoTestObject(UUID.randomUUID().toString, "some test value" + math.random)
+    Save(obj)
+
+    val out = DeleteById[DynamoTestObject](obj.id, retrieveBeforeDelete = true)
+    out must be(Some(obj))
+
+    Read[DynamoTestObject](obj.id) must be ('empty)
+
+    val out2 = DeleteById[DynamoTestObject](obj.id, retrieveBeforeDelete = true)
+    out2 must be(None)
+  }
+
+  "Delete with expected" in {
+    val someVal = "some test value" + math.random
+    val obj = DynamoTestObject(UUID.randomUUID().toString, someVal)
+    Save(obj)
+
+    try {
+      DeleteById[DynamoTestObject](obj.id, expected = Map("someValue" -> "fdgfd"))
+    } catch {
+      case tpe: asyncdynamo.ThirdPartyException => tpe.getCause.getCause match {
+        case ccfe: ConditionalCheckFailedException => "Expected"
+        case e: Exception => fail(e)
+      }
+      case e: Exception => fail(e)
+    }
+
+    Read[DynamoTestObject](obj.id) must be (Some(obj))
+
+    DeleteById[DynamoTestObject](obj.id, expected = Map("someValue" -> someVal))
+    Read[DynamoTestObject](obj.id) must be ('empty)
+  }
+
   "DeleteByRange" in {
     val objs = givenTestObjectsInDb(3)
     val id = objs(0).id
 
-    nonblocking.DeleteByRange[DynamoTestWithRangeObject](id, range = "1") blockingExecute
+    val ff = nonblocking.DeleteByRange[DynamoTestWithRangeObject](id, range = "1") blockingExecute
 
     Query[DynamoTestWithRangeObject](id, "EQ", List("1")).blockingStream must be ('empty)
     Query[DynamoTestWithRangeObject](id, "EQ", List("2")).blockingStream must not be ('empty)
+  }
+
+  "DeleteByRange return deleted item" in {
+    val objs = givenTestObjectsInDb(3)
+    val id = objs(0).id
+
+    val out = nonblocking.DeleteByRange[DynamoTestWithRangeObject](id, range = "1", retrieveBeforeDelete = true) blockingExecute
+
+    out must be(Some(objs(0)))
+
+    Query[DynamoTestWithRangeObject](id, "EQ", List("1")).blockingStream must be ('empty)
+    Query[DynamoTestWithRangeObject](id, "EQ", List("2")).blockingStream must not be ('empty)
+
+    val out2 = nonblocking.DeleteByRange[DynamoTestWithRangeObject](id, range = "1", retrieveBeforeDelete = true) blockingExecute
+
+    out2 must be(None)
   }
 
   "DeleteByRange for range which is numeric" in pending
@@ -202,6 +252,18 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
   "DeleteByRange with expected" in {
     val objs = givenTestObjectsInDb(3)
     val id = objs(0).id
+
+    try {
+      nonblocking.DeleteByRange[DynamoTestWithRangeObject](id, range = "1", expected = Map("otherValue" -> "value 100010")) blockingExecute
+    } catch {
+      case tpe: asyncdynamo.ThirdPartyException => tpe.getCause.getCause match {
+        case ccfe: ConditionalCheckFailedException => "Expected"
+        case e: Exception => fail(e)
+      }
+      case e: Exception => fail(e)
+    }
+
+    Query[DynamoTestWithRangeObject](id, "EQ", List("1")).blockingStream must be (Stream(objs(0)))
 
     nonblocking.DeleteByRange[DynamoTestWithRangeObject](id, range = "1", expected = Map("otherValue" -> "value 1")) blockingExecute
 

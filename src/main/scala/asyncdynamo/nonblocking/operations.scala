@@ -93,17 +93,32 @@ case class DeleteAll[T](implicit dyn:DynamoObject[T]) extends DbOperation[Int]{
   }
 }
 
-case class DeleteById[T](id: String)(implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
-  def execute(db: AmazonDynamoDB, tablePrefix:String){
+case class DeleteById[T](id: String, expected: Map[String,String] = Map.empty, retrieveBeforeDelete: Boolean = false)(implicit dyn:DynamoObject[T]) extends DbOperation[Option[T]]{
+  def execute(db: AmazonDynamoDB, tablePrefix:String) : Option[T] = {
     val key = Map(dyn.hashSchema.getAttributeName -> new AttributeValue(id))
-    db.deleteItem( new DeleteItemRequest().withTableName(dyn.table(tablePrefix)).withKey(key).withReturnConsumedCapacity("TOTAL"))
-  }
-  override def toString = "DeleteById[%s](%s)" format (dyn.table(""), id)
 
+    val request = new DeleteItemRequest()
+      .withTableName(dyn.table(tablePrefix))
+      .withKey(key)
+      .withReturnConsumedCapacity("TOTAL")
+      .withExpected(expected.map{case (k,v)=> (k, new ExpectedAttributeValue(new AttributeValue(v.toString)))}.asJava)
+
+    if (retrieveBeforeDelete)
+      request.withReturnValues(ReturnValue.ALL_OLD)
+
+    val out= db.deleteItem(request)
+
+    if (retrieveBeforeDelete)
+      Option (out.getAttributes) map ( attr => dyn.fromDynamo(attr.asScala.toMap) )
+    else
+      None
+  }
+
+  override def toString = "DeleteById[%s](%s)" format (dyn.table(""), id)
 }
 
-case class DeleteByRange[T](id: String, range: Any, expected: Map[String,String] = Map.empty)(implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
-  def execute(db: AmazonDynamoDB, tablePrefix:String){
+case class DeleteByRange[T](id: String, range: Any, expected: Map[String,String] = Map.empty, retrieveBeforeDelete: Boolean = false)(implicit dyn:DynamoObject[T]) extends DbOperation[Option[T]]{
+  def execute(db: AmazonDynamoDB, tablePrefix:String) : Option[T] = {
     if (!dyn.rangeSchema.isDefined) throw new ThirdPartyException("DeleteByRange works only for tables with a range attribute")
 
     val key = Map(dyn.hashSchema.getAttributeName -> dyn.asHashAttribute(id), dyn.rangeSchema.get.getAttributeName -> dyn.asRangeAttribute(range))
@@ -114,7 +129,15 @@ case class DeleteByRange[T](id: String, range: Any, expected: Map[String,String]
       .withReturnConsumedCapacity("TOTAL")
       .withExpected(expected.map{case (k,v)=> (k, new ExpectedAttributeValue(new AttributeValue(v.toString)))}.asJava)
 
-    db.deleteItem( request)
+    if (retrieveBeforeDelete)
+      request.withReturnValues(ReturnValue.ALL_OLD)
+
+    val out= db.deleteItem(request)
+
+    if (retrieveBeforeDelete)
+      Option (out.getAttributes) map ( attr => dyn.fromDynamo(attr.asScala.toMap) )
+    else
+      None
   }
 
   override def toString = "DeleteByRange[%s](%s)" format (dyn.table(""), super.toString)
