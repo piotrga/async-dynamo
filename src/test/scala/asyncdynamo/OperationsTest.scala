@@ -32,6 +32,7 @@ import asyncdynamo.blocking.Read
 import asyncdynamo.blocking.Save
 import asyncdynamo.nonblocking.QueryIndex
 import asyncdynamo.nonblocking.ColumnCondition
+import scala.annotation.tailrec
 
 
 class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSupport{
@@ -53,12 +54,68 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
       ), n * 5 seconds )
   }
 
+  def getRootCause(ex: Throwable): Throwable = {
+    if (ex.getCause eq null)
+      ex
+    else
+      getRootCause(ex.getCause)
+  }
+
   dynamo ! ('addListener, listener)
   createTables()
 
   "Save/Get" in {
     assertCanSaveGetObject()
+
+    val id = UUID.randomUUID().toString
+    val obj = DynamoTestWithRangeObject(id, "1", "value 1")
+    Save(obj)
+
+    val saved = Read[DynamoTestWithRangeObject](obj.id, Some("1")).get
+    assert(saved === obj)
   }
+
+  "Save existing value" in {
+    val id = UUID.randomUUID().toString
+    val obj = DynamoTestObject(id, "some test value" + math.random)
+    Save(obj, false) //should save ok
+
+    val saved = Read[DynamoTestObject](obj.id).get
+    assert(saved === obj)
+
+    try { Save(obj, false) } //should fail
+    catch {
+      case ex => {
+        getRootCause(ex) match {
+          case c: ConditionalCheckFailedException => assert(true) //expected
+          case u => fail(u)
+        }
+      }
+    }
+
+    Save(obj, true) //should save ok (overwrite existing)
+
+
+    val obj2 = DynamoTestWithRangeObject(id, "1", "value 1")
+    Save(obj2, false) //should save ok
+
+    val savedWithRange = Read[DynamoTestWithRangeObject](obj2.id, Some("1")).get
+    assert(savedWithRange === obj2)
+
+    try { Save(obj2, false) } //should fail
+    catch {
+      case ex => {
+        getRootCause(ex) match {
+          case c: ConditionalCheckFailedException => assert(true) //expected
+          case u => fail(u)
+        }
+      }
+    }
+
+    Save(obj2, true) //should save ok (overwrite existing)
+  }
+
+
 
   "Can update values in an existing record" in {
     val obj = DynamoTestObject(UUID.randomUUID().toString, "some test value" + math.random)

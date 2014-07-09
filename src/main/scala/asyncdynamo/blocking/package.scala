@@ -26,7 +26,7 @@ package object blocking {
 
   def Scan[T](conditions: Seq[ColumnCondition], exclusiveStartKey: Option[Map[String,AttributeValue]])(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.Scan(conditions, exclusiveStartKey).blockingExecute
 
-  def Save[T](o: T)(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.Save(o).blockingExecute
+  def Save[T](o: T, overwriteExisting: Boolean = true)(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.Save(o, overwriteExisting).blockingExecute
 
   def Update[T](id: String, o: T, range: Option[String] = None)(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.Update(id, o, range).blockingExecute
 

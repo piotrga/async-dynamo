@@ -30,9 +30,22 @@ import collection.JavaConversions._
 import scala.Some
 import scala.collection.JavaConversions._
 
-case class Save[T ](o : T)(implicit dyn:DynamoObject[T]) extends DbOperation[T]{
+case class Save[T ](o : T, overwriteExisting: Boolean = true)(implicit dyn:DynamoObject[T]) extends DbOperation[T]{
   def execute(db: AmazonDynamoDB, tablePrefix:String) : T = {
-    db.putItem(new PutItemRequest(dyn.table(tablePrefix), dyn.toDynamo(o).asJava).withReturnConsumedCapacity("TOTAL"))
+    val putRequest = new PutItemRequest(dyn.table(tablePrefix), dyn.toDynamo(o).asJava)
+      .withReturnConsumedCapacity("TOTAL")
+
+    if (!overwriteExisting) {
+      val keyAttribs = dyn.rangeAttrib
+        .map( rangeValue => Map(
+          dyn.hashSchema.getAttributeName -> new ExpectedAttributeValue(false),
+          dyn.rangeSchema.get.getAttributeName -> new ExpectedAttributeValue(false)))
+        .getOrElse( Map(dyn.hashSchema.getAttributeName -> new ExpectedAttributeValue(false)))
+
+      putRequest.withExpected(Map(dyn.hashSchema.getAttributeName -> new ExpectedAttributeValue(false)).asJava)
+    }
+
+    db.putItem(putRequest)
     o
   }
 
