@@ -83,7 +83,12 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     val saved = Read[DynamoTestObject](obj.id).get
     assert(saved === obj)
 
-    try { Save(obj, false) } //should fail
+    val objAltered = DynamoTestObject(id, "some other test value" + math.random)
+
+    try {
+      Save(objAltered, false) //should fail
+      fail(new IllegalStateException("Should never get here, ConditionalCheckFailedException expected already!"))
+    }
     catch {
       case ex => {
         getRootCause(ex) match {
@@ -93,7 +98,13 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
       }
     }
 
-    Save(obj, true) //should save ok (overwrite existing)
+    val saved2 = Read[DynamoTestObject](obj.id).get
+    assert(saved2 === obj)
+
+    Save(objAltered, true) //should save ok (overwrite existing)
+
+    val saved3 = Read[DynamoTestObject](obj.id).get
+    assert(saved3 === objAltered)
 
 
     val obj2 = DynamoTestWithRangeObject(id, "1", "value 1")
@@ -102,7 +113,15 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     val savedWithRange = Read[DynamoTestWithRangeObject](obj2.id, Some("1")).get
     assert(savedWithRange === obj2)
 
-    try { Save(obj2, false) } //should fail
+    val objAltered2 = DynamoTestWithRangeObject(id, "1", "value 778")
+
+    val savedWithRange2 = Read[DynamoTestWithRangeObject](obj2.id, Some("1")).get
+    assert(savedWithRange2 === obj2)
+
+    try {
+      Save(objAltered2, false) //should fail
+      fail(new IllegalStateException("Should never get here, ConditionalCheckFailedException expected already!"))
+    }
     catch {
       case ex => {
         getRootCause(ex) match {
@@ -112,9 +131,11 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
       }
     }
 
-    Save(obj2, true) //should save ok (overwrite existing)
-  }
+    Save(objAltered2, true) //should save ok (overwrite existing)
 
+    val savedWithRange3 = Read[DynamoTestWithRangeObject](obj2.id, Some("1")).get
+    assert(savedWithRange3 === objAltered2)
+  }
 
 
   "Can update values in an existing record" in {

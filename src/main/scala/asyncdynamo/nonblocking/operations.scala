@@ -36,13 +36,13 @@ case class Save[T ](o : T, overwriteExisting: Boolean = true)(implicit dyn:Dynam
       .withReturnConsumedCapacity("TOTAL")
 
     if (!overwriteExisting) {
-      val keyAttribs = dyn.rangeAttrib
+      val expectedValsMap = dyn.rangeAttrib
         .map( rangeValue => Map(
           dyn.hashSchema.getAttributeName -> new ExpectedAttributeValue(false),
           dyn.rangeSchema.get.getAttributeName -> new ExpectedAttributeValue(false)))
         .getOrElse( Map(dyn.hashSchema.getAttributeName -> new ExpectedAttributeValue(false)))
 
-      putRequest.withExpected(Map(dyn.hashSchema.getAttributeName -> new ExpectedAttributeValue(false)).asJava)
+      putRequest.setExpected(expectedValsMap.asJava)
     }
 
     db.putItem(putRequest)
