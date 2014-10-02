@@ -9,8 +9,8 @@ resolvers += "piotrga-remote" at "https://raw.github.com/piotrga/piotrga.github.
 
 // Libraries
 libraryDependencies ++= Seq(
-    "com.amazonaws" % "aws-java-sdk" % "1.3.33",
-    "com.typesafe.akka" %% "akka-actor" % "2.1.1"
+    "com.amazonaws" % "aws-java-sdk" % "1.7.5",
+    "com.typesafe.akka" %% "akka-actor" % "2.2.3"
 )
 
 // Test libraries

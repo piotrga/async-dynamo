@@ -16,31 +16,68 @@
 
 package asyncdynamo
 
-import com.amazonaws.services.dynamodb.model.{KeySchemaElement, AttributeValue}
+import com.amazonaws.services.dynamodbv2.model._
+import scala.Some
+
+trait SecondaryIndex{
+  def name:String
+  def hashKey: DynamoObject.KeyDefinition
+  def rangeKey: Option[DynamoObject.KeyDefinition]
+
+  def getIndexHashSchema(): KeySchemaElement = new KeySchemaElement().withAttributeName(hashKey._1).withKeyType(KeyType.HASH)
+  def getIndexHashAttrib(): AttributeDefinition = new AttributeDefinition().withAttributeName(hashKey._1).withAttributeType(hashKey._2)
+
+  def getIndexRangeSchema(): KeySchemaElement = new KeySchemaElement().withAttributeName(rangeKey.getOrElse(sys.error("This index doesn't have range attribute"))._1).withKeyType(KeyType.RANGE)
+  def getIndexRangeAttrib(): AttributeDefinition = new AttributeDefinition().withAttributeName(rangeKey.getOrElse(sys.error("This index doesn't have range attribute"))._1).withAttributeType(rangeKey.getOrElse(sys.error("This index doesn't have range attribute"))._2)
+
+  def createKeySchemaElement(): List[KeySchemaElement] = rangeKey match {
+    case Some((range)) =>
+      List(getIndexHashSchema(), getIndexRangeSchema())
+    case None =>
+      List(getIndexHashSchema())
+  }
+
+  def getAllAttribs(): List[AttributeDefinition] = rangeKey match {
+    case Some(range) =>
+      List(getIndexHashAttrib(), getIndexRangeAttrib())
+    case None =>
+      List(getIndexHashAttrib())
+  }
+}
+
+case class LocalSecondaryIndex(name: String, hashKey: DynamoObject.KeyDefinition, rangeKey: Option[DynamoObject.KeyDefinition]) extends SecondaryIndex
+
+case class GlobalSecondaryIndex(name: String, hashKey: DynamoObject.KeyDefinition, rangeKey: Option[DynamoObject.KeyDefinition], readThroughput: Long = 5, writeThrougput: Long = 5) extends SecondaryIndex
 
 trait DynamoObject[T]{
 
   protected implicit def toS(value : String) = new AttributeValue().withS(value)
   protected def toN[A: Numeric](number: A) =  new AttributeValue().withN(number.toString)
 
-  protected def key(attrName:String, attrType: String) = new KeySchemaElement().withAttributeName(attrName).withAttributeType(attrType)
+  protected def hashKey: DynamoObject.KeyDefinition
+  protected def rangeKey: Option[DynamoObject.KeyDefinition] = None
 
   protected def table : String
   def toDynamo(t:T) : Map[String, AttributeValue]
   def fromDynamo(attributes: Map[String, AttributeValue]) : T
   def table(prefix: String): String = prefix + table
-  def key: KeySchemaElement = key("id", "S")
-  def range: Option[KeySchemaElement] = None
 
-  def asRangeAttribute(v: Any) : AttributeValue = range.getOrElse(sys.error("This table doesn't have range attribute")).getAttributeType match {
-      case "S" => new AttributeValue().withS(v.toString)
-      case "N" => new AttributeValue().withN(v.toString)
-      case aType => sys.error("Not supported range attribute type [%s]" format aType)
-  }
+  def hashSchema: KeySchemaElement = new KeySchemaElement().withAttributeName(hashKey._1).withKeyType(KeyType.HASH)
+  def hashAttrib: AttributeDefinition = new AttributeDefinition().withAttributeName(hashKey._1).withAttributeType(hashKey._2)
 
+  def rangeSchema: Option[KeySchemaElement] = rangeKey.map(key => Some(new KeySchemaElement().withAttributeName(key._1).withKeyType(KeyType.RANGE))).getOrElse(None)
+  def rangeAttrib: Option[AttributeDefinition] = rangeKey.map(key => Some(new AttributeDefinition().withAttributeName(key._1).withAttributeType(key._2))).getOrElse(None)
+
+  def asHashAttribute(v: Any): AttributeValue = DynamoObject.asAttribute(v, hashKey._2)
+  def asRangeAttribute(v: Any): AttributeValue = DynamoObject.asAttribute(v, rangeKey.getOrElse(sys.error("This table doesn't have range attribute"))._2)
+
+  def localSecondaryIndexes: Seq[LocalSecondaryIndex] = Seq()
+  def globalSecondaryIndexes: Seq[GlobalSecondaryIndex] = Seq()
 }
 
 object DynamoObject {
+
+  type KeyDefinition = Tuple2[String,String] //name, type
 
   /**
    * Generates DynamoObject for a case class with one field. ie.
@@ -71,7 +108,8 @@ object DynamoObject {
       def fromDynamo(attributes: Map[String, AttributeValue]) = construct(names.map{ name => attributes.get(name).map(_.getS).getOrElse(null)})
       def toDynamo(t: T) = names.zipWithIndex.filter{ case(name,i) => t.productElement(i) != null }.map {case (name, i) => (name, new AttributeValue().withS(t.productElement(i).toString))}.toMap
 
-      override def key = key(keyName, "S")
+      override def hashKey = (keyName, "S")
+      override def rangeKey = None
       protected def table = className
     }
   }
@@ -90,9 +128,17 @@ object DynamoObject {
         sys.error("Cannot determine field order of case class " + clazz.getName)
       fields.map(_.getName)
     } catch {
-      case ex => throw new RuntimeException("Cannot automatically determine case class field names and order " +
+      case ex : Throwable => throw new RuntimeException("Cannot automatically determine case class field names and order " +
         "for '" + clazz.getName + "', please use the 'jsonFormat' overload with explicit field name specification", ex)
     }
+  }
+
+  def asAttribute(v: Any, keyType: ScalarAttributeType): AttributeValue = asAttribute(v, keyType.toString)
+
+  def asAttribute(v: Any, keyType: String): AttributeValue = keyType match {
+    case "S" => new AttributeValue().withS(v.toString)
+    case "N" => new AttributeValue().withN(v.toString)
+    case aType => sys.error("Not supported attribute type [%s]" format aType)
   }
 }
 

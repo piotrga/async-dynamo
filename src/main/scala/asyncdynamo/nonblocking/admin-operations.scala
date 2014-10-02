@@ -16,26 +16,37 @@
 
 package asyncdynamo.nonblocking
 
-import com.amazonaws.services.dynamodb.AmazonDynamoDB
-import com.amazonaws.services.dynamodb.model._
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
+import com.amazonaws.services.dynamodbv2.model._
 import akka.actor.{ActorSystem, ActorRef}
 import akka.util.Timeout
 import scala.concurrent.duration._
 import asyncdynamo._
 import concurrent.{Promise, Future, Await}
 import util.{Failure, Success}
+import collection.JavaConversions._
 
 case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
   def execute(db: AmazonDynamoDB, tablePrefix:String) {
 
-
-    val keySchema = dyn.range match {
+    val keySchemas: List[KeySchemaElement] = dyn.rangeSchema match {
       case Some((range)) =>
-        new KeySchema().withHashKeyElement(dyn.key)
-        .withRangeKeyElement(range)
+        List(dyn.hashSchema, range)
       case None =>
-        new KeySchema().withHashKeyElement(dyn.key)
+        List(dyn.hashSchema)
     }
+
+    val keyAttribs: List[AttributeDefinition] = dyn.rangeAttrib match {
+      case Some((rangeAttrib)) =>
+        List(dyn.hashAttrib, rangeAttrib)
+      case None =>
+        List(dyn.hashAttrib)
+    }
+
+    val localSecondaryIndexesAttribs = (for (secondaryIndex <- dyn.localSecondaryIndexes) yield secondaryIndex.getAllAttribs()).flatten.toList
+    val globalSecondaryIndexesAttribs= (for (secondaryIndex <- dyn.globalSecondaryIndexes) yield secondaryIndex.getAllAttribs()).flatten.toList
+
+    val allAttribs = (keyAttribs ::: localSecondaryIndexesAttribs ::: globalSecondaryIndexesAttribs).distinct
 
     val provisionedThroughput = new ProvisionedThroughput()
       .withReadCapacityUnits(readThroughput)
@@ -43,8 +54,39 @@ case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(imp
 
     val request = new CreateTableRequest()
       .withTableName(dyn.table(tablePrefix))
-      .withKeySchema(keySchema)
+      .withKeySchema( seqAsJavaList(keySchemas) )
       .withProvisionedThroughput(provisionedThroughput)
+      .withAttributeDefinitions(allAttribs)
+
+    //LocalSecondaryIndexes
+    val localSecondaryIndexes = for (secondaryIndex <- dyn.localSecondaryIndexes)
+    yield {
+      new com.amazonaws.services.dynamodbv2.model.LocalSecondaryIndex()
+        .withIndexName(secondaryIndex.name)
+        .withKeySchema(secondaryIndex.createKeySchemaElement)
+        .withProjection(new Projection().withProjectionType(ProjectionType.ALL))
+    }
+
+    if (localSecondaryIndexes.size > 0)
+      request.setLocalSecondaryIndexes( localSecondaryIndexes )
+
+    //GlobalSecondaryIndexes
+    val globalSecondaryIndexes = for (secondaryIndex <- dyn.globalSecondaryIndexes)
+    yield {
+      val provisionedThroughput = new ProvisionedThroughput()
+        .withReadCapacityUnits(secondaryIndex.readThroughput)
+        .withWriteCapacityUnits(secondaryIndex.writeThrougput)
+
+      new com.amazonaws.services.dynamodbv2.model.GlobalSecondaryIndex()
+        .withIndexName(secondaryIndex.name)
+        .withKeySchema(secondaryIndex.createKeySchemaElement)
+        .withProvisionedThroughput(provisionedThroughput)
+        .withProjection(new Projection().withProjectionType(ProjectionType.ALL))
+    }
+
+    if (globalSecondaryIndexes.size > 0)
+      request.setGlobalSecondaryIndexes( globalSecondaryIndexes )
+
     db.createTable(request)
   }
 
@@ -53,9 +95,6 @@ case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(imp
     Await.ready(this.executeOn(dynamo)(timeout), timeout.duration)
     Await.ready(IsTableActive()(dyn).blockUntilTrue(deadline.timeLeft), deadline.timeLeft)
   }
-
-
-
 }
 
 case class TableExists[T](implicit dyn: DynamoObject[T]) extends DbOperation[Boolean]{
