@@ -43,18 +43,6 @@ case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(imp
         List(dyn.hashAttrib)
     }
 
-    /*val keySchema = dyn.range match {
-      case Some((range)) =>
-        Seq(new KeySchemaElement()
-            .withAttributeName(dyn.key.schema.getAttributeName)
-            .withKeyType(dyn.key.schema.getKeyType),
-        new KeySchema().withHashKeyElement(dyn.key)
-        .withRangeKeyElement(range)
-            .withKeyType(range.schema.getKeyType))
-      case None =>
-        new KeySchema().withHashKeyElement(dyn.key)
-    }*/
-
     val provisionedThroughput = new ProvisionedThroughput()
       .withReadCapacityUnits(readThroughput)
       .withWriteCapacityUnits(writeThrougput)
@@ -73,9 +61,6 @@ case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(imp
     Await.ready(this.executeOn(dynamo)(timeout), timeout.duration)
     Await.ready(IsTableActive()(dyn).blockUntilTrue(deadline.timeLeft), deadline.timeLeft)
   }
-
-
-
 }
 
 case class TableExists[T](implicit dyn: DynamoObject[T]) extends DbOperation[Boolean]{
