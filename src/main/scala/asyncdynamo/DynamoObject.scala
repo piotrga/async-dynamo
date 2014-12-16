@@ -77,7 +77,7 @@ trait DynamoObject[T]{
 
 object DynamoObject {
 
-  type KeyDefinition = Tuple2[String,String]
+  type KeyDefinition = Tuple2[String,String] //name, type
 
   /**
    * Generates DynamoObject for a case class with one field. ie.
