@@ -38,7 +38,7 @@ class AdminOperationsTest extends FreeSpec with MustMatchers with DynamoSupport{
     }
   }
 
-  val eventually : ( => Boolean) => Unit = eventually(60, 1000)
+  val eventually : ( => Boolean) => Unit = eventually(120, 1000)
 
   "Combination of create/delete table operations" in {
     try DeleteTable[AdminTest] catch {case _ => ()} //ignore if it doesn't exist

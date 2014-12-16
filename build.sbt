@@ -4,13 +4,17 @@ name := "async-dynamo"
 
 scalaVersion := "2.10.0"
 
+evictionWarningOptions in update := EvictionWarningOptions.default.withWarnTransitiveEvictions(false).withWarnDirectEvictions(false).withWarnScalaVersionEviction(false)
+
+ivyScala := ivyScala.value map { _.copy(overrideScalaVersion = true) }
+
 //resolvers += Resolver.file("piotrga", file(sys.env("PIOTRGA_GITHUB_REPO")))
 resolvers += "piotrga-remote" at "https://raw.github.com/piotrga/piotrga.github.com/master/maven-repo"
 
 // Libraries
 libraryDependencies ++= Seq(
-    "com.amazonaws" % "aws-java-sdk" % "1.3.33",
-    "com.typesafe.akka" %% "akka-actor" % "2.1.1"
+    "com.amazonaws" % "aws-java-sdk" % "1.4.6",
+    "com.typesafe.akka" %% "akka-actor" % "2.2.0-RC1"
 )
 
 // Test libraries
