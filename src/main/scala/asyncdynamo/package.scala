@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-import com.amazonaws.services.dynamodb.AmazonDynamoDB
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
 import akka.actor.ActorRef
 import akka.util.Timeout
 import concurrent.Future

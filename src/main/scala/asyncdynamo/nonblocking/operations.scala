@@ -17,25 +17,24 @@
 package asyncdynamo.nonblocking
 
 import scala.collection.JavaConverters._
-import com.amazonaws.services.dynamodb.model._
-import com.amazonaws.services.dynamodb.AmazonDynamoDB
-import com.amazonaws.services.dynamodb.model.AttributeValue
-import com.amazonaws.services.dynamodb.model.PutItemRequest
-import com.amazonaws.services.dynamodb.model.ScanRequest
-import com.amazonaws.services.dynamodb.model.DeleteItemRequest
-import com.amazonaws.services.dynamodb.model.Key
+import com.amazonaws.services.dynamodbv2.model._
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
+import com.amazonaws.services.dynamodbv2.model.AttributeValue
+import com.amazonaws.services.dynamodbv2.model.PutItemRequest
+import com.amazonaws.services.dynamodbv2.model.ScanRequest
+import com.amazonaws.services.dynamodbv2.model.DeleteItemRequest
+import com.amazonaws.services.dynamodbv2
 import asyncdynamo.{ThirdPartyException, functional, DynamoObject, DbOperation}
-import akka.actor.{ActorSystem, ActorRef}
+import akka.actor.{ActorRef}
 import akka.util.Timeout
 import asyncdynamo.functional._
 import asyncdynamo.functional.Iteratee._
 import concurrent.{ExecutionContext, Future, Promise}
-import reflect.ClassTag
-
+import collection.JavaConversions._
 
 case class Save[T ](o : T)(implicit dyn:DynamoObject[T]) extends DbOperation[T]{
   def execute(db: AmazonDynamoDB, tablePrefix:String) : T = {
-    db.putItem(new PutItemRequest(dyn.table(tablePrefix), dyn.toDynamo(o).asJava))
+    db.putItem(new PutItemRequest(dyn.table(tablePrefix), dyn.toDynamo(o).asJava).withReturnConsumedCapacity("TOTAL"))
     o
   }
 
@@ -45,9 +44,9 @@ case class Save[T ](o : T)(implicit dyn:DynamoObject[T]) extends DbOperation[T]{
 
 case class Read[T](id:String, consistentRead : Boolean = true)(implicit dyn:DynamoObject[T]) extends DbOperation[Option[T]]{
   def execute(db: AmazonDynamoDB, tablePrefix:String) : Option[T] = {
-
-    val read = new GetItemRequest( dyn.table(tablePrefix), new Key().withHashKeyElement(new AttributeValue(id)))
+    val read = new GetItemRequest( dyn.table(tablePrefix), Map(dyn.hashSchema.getAttributeName -> new AttributeValue(id)) )
       .withConsistentRead(consistentRead)
+      .withReturnConsumedCapacity("TOTAL")
 
     val attributes = db.getItem(read).getItem
     Option (attributes) map ( attr => dyn.fromDynamo(attr.asScala.toMap) )
@@ -58,7 +57,7 @@ case class Read[T](id:String, consistentRead : Boolean = true)(implicit dyn:Dyna
 
 case class ListAll[T](limit : Int)(implicit dyn:DynamoObject[T]) extends DbOperation[Seq[T]]{
   def execute(db: AmazonDynamoDB, tablePrefix:String) : Seq[T] = {
-    db.scan(new ScanRequest(dyn.table(tablePrefix)).withLimit(limit)).getItems.asScala.map {
+    db.scan(new ScanRequest(dyn.table(tablePrefix)).withLimit(limit).withReturnConsumedCapacity("TOTAL")).getItems.asScala.map {
       item => dyn.fromDynamo(item.asScala.toMap)
     }
   }
@@ -66,12 +65,11 @@ case class ListAll[T](limit : Int)(implicit dyn:DynamoObject[T]) extends DbOpera
 
 case class DeleteAll[T](implicit dyn:DynamoObject[T]) extends DbOperation[Int]{
   def execute(db: AmazonDynamoDB, tablePrefix:String) : Int = {
-    if (dyn.range.isDefined) throw new ThirdPartyException("DeleteAll works only for tables without range attribute")
-    val res = db.scan(new ScanRequest(dyn.table(tablePrefix)))
+    if (dyn.rangeSchema.isDefined) throw new ThirdPartyException("DeleteAll works only for tables without range attribute")
+    val res = db.scan(new ScanRequest(dyn.table(tablePrefix)).withReturnConsumedCapacity("TOTAL"))
     res.getItems.asScala.par.map{ item =>
-      val id = item.get(dyn.key.getAttributeName)
-      val key = new Key().withHashKeyElement(id)
-      db.deleteItem( new DeleteItemRequest().withTableName(dyn.table(tablePrefix)).withKey(key) )
+      val key = Map(dyn.hashSchema.getAttributeName -> item.get(dyn.hashSchema.getAttributeName))
+      db.deleteItem( new DeleteItemRequest().withTableName(dyn.table(tablePrefix)).withKey(key).withReturnConsumedCapacity("TOTAL") )
     }
     res.getCount
   }
@@ -79,7 +77,8 @@ case class DeleteAll[T](implicit dyn:DynamoObject[T]) extends DbOperation[Int]{
 
 case class DeleteById[T](id: String)(implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
   def execute(db: AmazonDynamoDB, tablePrefix:String){
-    db.deleteItem( new DeleteItemRequest().withTableName(dyn.table(tablePrefix)).withKey(new Key().withHashKeyElement(new AttributeValue(id))))
+    val key = Map(dyn.hashSchema.getAttributeName -> new AttributeValue(id))
+    db.deleteItem( new DeleteItemRequest().withTableName(dyn.table(tablePrefix)).withKey(key).withReturnConsumedCapacity("TOTAL"))
   }
   override def toString = "DeleteById[%s](%s)" format (dyn.table(""), id)
 
@@ -87,18 +86,14 @@ case class DeleteById[T](id: String)(implicit dyn:DynamoObject[T]) extends DbOpe
 
 case class DeleteByRange[T](id: String, range: Any, expected: Map[String,String] = Map.empty)(implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
   def execute(db: AmazonDynamoDB, tablePrefix:String){
-    val rangeAttribute = if (dyn.range.get.getAttributeType == "S")
-      new AttributeValue().withS(range.toString)
-    else
-      new AttributeValue().withN(range.toString)
+    if (!dyn.rangeSchema.isDefined) throw new ThirdPartyException("DeleteByRange works only for tables with a range attribute")
 
-    val key = new Key()
-      .withHashKeyElement(new AttributeValue(id))
-      .withRangeKeyElement(rangeAttribute)
+    val key = Map(dyn.hashSchema.getAttributeName -> dyn.asHashAttribute(id), dyn.rangeSchema.get.getAttributeName -> dyn.asRangeAttribute(range))
 
     val request = new DeleteItemRequest()
       .withTableName(dyn.table(tablePrefix))
       .withKey(key)
+      .withReturnConsumedCapacity("TOTAL")
       .withExpected(expected.map{case (k,v)=> (k, new ExpectedAttributeValue(new AttributeValue(v.toString)))}.asJava)
 
     db.deleteItem( request)
@@ -106,32 +101,47 @@ case class DeleteByRange[T](id: String, range: Any, expected: Map[String,String]
 
   override def toString = "DeleteByRange[%s](%s)" format (dyn.table(""), super.toString)
 
-
 }
 
+case class Query[T](id: String, operator: Option[String], attributes: Seq[Any], limit : Int, exclusiveStartKey: Option[Map[String,AttributeValue]], consistentRead :Boolean)(implicit dyn:DynamoObject[T]) extends DbOperation[(Seq[T], Option[Map[String,AttributeValue]])]{
 
-case class Query[T](id: String, operator: Option[String], attributes: Seq[Any], limit : Int, exclusiveStartKey: Option[Key], consistentRead :Boolean)(implicit dyn:DynamoObject[T]) extends DbOperation[(Seq[T], Option[Key])]{
-  def execute(db: AmazonDynamoDB, tablePrefix:String) : (Seq[T], Option[Key]) = {
+  def execute(db: AmazonDynamoDB, tablePrefix:String) : (Seq[T], Option[Map[String,AttributeValue]]) = {
 
+    val keyConditions = operator
+    .map( operator => Map(
+      dyn.hashSchema.getAttributeName -> new Condition()
+        .withComparisonOperator("EQ")
+        .withAttributeValueList(dyn.asHashAttribute(id)),
+      dyn.rangeSchema.get.getAttributeName -> new Condition()
+        .withComparisonOperator( operator )
+        .withAttributeValueList( attributes.map(dyn.asRangeAttribute).asJava ))
+    )
+    .getOrElse( Map(
+      dyn.hashSchema.getAttributeName -> new Condition()
+        .withComparisonOperator("EQ")
+        .withAttributeValueList(dyn.asHashAttribute(id)))
+    )
 
-    val query = new QueryRequest()
+    val query = new dynamodbv2.model.QueryRequest()
       .withTableName(dyn.table(tablePrefix))
-      .withHashKeyValue(new AttributeValue(id))
-      .withExclusiveStartKey(exclusiveStartKey getOrElse null)
+      .withKeyConditions(keyConditions.asJava)
       .withConsistentRead(consistentRead)
       .withLimit(limit)
-      .withRangeKeyCondition{ operator map ( operator => new Condition()
-      .withComparisonOperator(operator)
-      .withAttributeValueList(attributes.map(dyn.asRangeAttribute).asJava)) getOrElse null
-    }
+      .withReturnConsumedCapacity("TOTAL")
 
+    exclusiveStartKey.map(key => query.setExclusiveStartKey(key.asJava))
 
     val result = db.query(query)
     val items = result.getItems.asScala.map {
       item => dyn.fromDynamo(item.asScala.toMap)
     }
 
-    (items, Option(result.getLastEvaluatedKey))
+    val lastEvaluatedKey = if (result.getLastEvaluatedKey != null)
+      Option(result.getLastEvaluatedKey.toMap)
+    else
+      None
+
+    (items, lastEvaluatedKey)
   }
 
   def blockingStream(implicit dynamo: ActorRef, pageTimeout: Timeout): Stream[T] = //TODO: use iteratees or some other magic to get rid of this blocking behaviour (Peter G. 31/10/2012)
@@ -147,15 +157,13 @@ case class Query[T](id: String, operator: Option[String], attributes: Seq[Any], 
 
   def run[A](iter:Iteratee[T,A])(implicit dynamo: ActorRef, pageTimeout: Timeout, execCtx :ExecutionContext) : Future[Iteratee[T,A]] = {
 
-    def nextBatch(token : Option[Key]) = this.copy(exclusiveStartKey = token).executeOn(dynamo)(pageTimeout)
+    def nextBatch(token : Option[Map[String,AttributeValue]]) = this.copy(exclusiveStartKey = token).executeOn(dynamo)(pageTimeout)
 
     pageAsynchronously2(nextBatch, iter)(new {def apply[X]()= Promise[X]()}, execCtx)
   }
-
-
 }
 
 object Query{
-  def apply[T](id: String, operator: String = null, attributes: Seq[Any] = Nil, limit : Int = Int.MaxValue, exclusiveStartKey: Key = null, consistentRead :Boolean = true)(implicit dyn:DynamoObject[T]) :Query[T]=
-    Query(id, Option(operator), attributes, limit, Option(exclusiveStartKey), consistentRead)
+  def apply[T](id: String, operator: String = null, attributes: Seq[Any] = Nil, limit : Int = Int.MaxValue, exclusiveStartKey: Option[Map[String,AttributeValue]] = None, consistentRead :Boolean = true)(implicit dyn:DynamoObject[T]) :Query[T]=
+    Query(id, Option(operator), attributes, limit, exclusiveStartKey, consistentRead)
 }
