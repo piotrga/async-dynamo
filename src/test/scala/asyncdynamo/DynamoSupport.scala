@@ -20,7 +20,7 @@ import nonblocking.{CreateTable, TableExists}
 import org.scalatest.{BeforeAndAfterAll, Suite}
 import akka.util.Timeout
 import scala.concurrent.duration._
-import com.amazonaws.services.dynamodb.model.AttributeValue
+import com.amazonaws.services.dynamodbv2.model.AttributeValue
 
 object DynamoTestDataObjects{
   case class DynamoTestObject(id:String, someValue:String)
@@ -36,7 +36,7 @@ object DynamoTestDataObjects{
     def toDynamo(t: DynamoTestWithRangeObject) = Map("id"->t.id, "rangeValue"->t.rangeValue, "otherValue" -> t.otherValue)
     def fromDynamo(a: Map[String, AttributeValue]) = DynamoTestWithRangeObject(a("id").getS, a("rangeValue").getS, a("otherValue").getS)
     protected val table = "%s_dynamotest_withrange" format Option(System.getenv("USER")).getOrElse("unknown")
-    override val range = Some(key("rangeValue", "S"))
+    override val range = Some(defineAttribute("rangeValue", "S"))
   }
 
   case class DynamoTestWithNumericRangeObject(id:String, rangeValue:Int, otherValue: String)
@@ -44,7 +44,7 @@ object DynamoTestDataObjects{
     def toDynamo(t: DynamoTestWithNumericRangeObject) = Map("id"->t.id, "rangeValue"->toN(t.rangeValue), "otherValue" -> t.otherValue)
     def fromDynamo(a: Map[String, AttributeValue]) = DynamoTestWithNumericRangeObject(a("id").getS, a("rangeValue").getN.toInt, a("otherValue").getS)
     protected val table = "%s_dynamotest_with_numeric_range" format Option(System.getenv("USER")).getOrElse("unknown")
-    override val range = Some(key("rangeValue", "N"))
+    override val range = Some(defineAttribute("rangeValue", "N"))
   }
 
   case class Broken(id:String)
@@ -73,6 +73,7 @@ trait DynamoTestObjectSupport extends DynamoSupport{ self : Suite =>
     if (!TableExists[DynamoTestObject]().blockingExecute){
       CreateTable[DynamoTestObject]().blockingExecute(dynamo,1 minute)
     }
+
     if (!TableExists[DynamoTestWithRangeObject]().blockingExecute){
       CreateTable[DynamoTestWithRangeObject](100, 100).blockingExecute(dynamo,1 minute)
     }

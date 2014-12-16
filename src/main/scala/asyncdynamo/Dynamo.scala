@@ -17,19 +17,20 @@
 package asyncdynamo
 
 import akka.actor._
-import com.amazonaws.services.dynamodb.AmazonDynamoDBClient
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
 import com.amazonaws.ClientConfiguration
 import com.amazonaws.auth.BasicAWSCredentials
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
 import akka.routing.SmallestMailboxRouter
 import com.typesafe.config.ConfigFactory
-import com.amazonaws.services.dynamodb.model._
+import com.amazonaws.services.dynamodbv2.model._
 import akka.actor.Status.Failure
 import asyncdynamo.Operation.Type
 import concurrent.duration._
 
 class Dynamo(config: DynamoConfig) extends Actor {
 
-  private val clientConfig = {
+  val clientConfig = {
     val c = new ClientConfiguration()
     c.setMaxConnections(1)
     c.setMaxErrorRetry(config.throttlingRecoveryStrategy.amazonMaxErrorRetry)
@@ -38,7 +39,7 @@ class Dynamo(config: DynamoConfig) extends Actor {
     c
   }
 
-  private val delegate = if (!config.accessKey.isEmpty)
+  lazy val delegate: AmazonDynamoDB = if (!config.accessKey.isEmpty)
     new AmazonDynamoDBClient(new BasicAWSCredentials(config.accessKey, config.secret), clientConfig)
   else
     new AmazonDynamoDBClient(clientConfig)
@@ -79,12 +80,14 @@ class Dynamo(config: DynamoConfig) extends Actor {
 
 }
 
-object Dynamo{
-  def apply(config: DynamoConfig, connectionCount: Int) : ActorRef = {
+object Dynamo {
+  def apply(config: DynamoConfig, connectionCount: Int): ActorRef = apply(new Dynamo(config), connectionCount)
+
+  def apply(dynamo: => Dynamo, connectionCount: Int) : ActorRef = {
     val system = ActorSystem("Dynamo", ConfigFactory.load().getConfig("Dynamo") )
 
     system.actorOf(Props(new Actor {
-      val router = context.actorOf(Props(new Dynamo(config))
+      val router = context.actorOf(Props(dynamo)
         .withRouter(SmallestMailboxRouter(connectionCount))
         .withDispatcher("dynamo-connection-dispatcher"), "DynamoConnection")
 
@@ -118,7 +121,7 @@ class ThirdPartyException(msg: String, cause:Throwable=null) extends RuntimeExce
 
 trait DynamoEvent
 
-case class DynamoRequestExecuted(operation:Operation, readUnits: Double = 0 , writeUnits: Double =0, time : Long = System.currentTimeMillis(), duration : Long) extends DynamoEvent
+case class DynamoRequestExecuted(operation:Operation, readUnits: Option[Double] = None , writeUnits: Option[Double] = None, time : Long = System.currentTimeMillis(), duration : Long) extends DynamoEvent
 case class OperationExecuted(duration:FiniteDuration, operation: DbOperation[_]) extends DynamoEvent
 case class OperationFailed(operation: DbOperation[_], reason: Throwable) extends DynamoEvent
 case class ProvisionedThroughputExceeded(operation: DbOperation[_], msg:String) extends DynamoEvent

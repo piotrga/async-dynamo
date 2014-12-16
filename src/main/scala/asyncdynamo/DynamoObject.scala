@@ -16,21 +16,29 @@
 
 package asyncdynamo
 
-import com.amazonaws.services.dynamodb.model.{KeySchemaElement, AttributeValue}
+import com.amazonaws.services.dynamodbv2.model.{
+  AttributeDefinition,
+  AttributeValue,
+  KeySchemaElement,
+  ScalarAttributeType
+}
 
 trait DynamoObject[T]{
 
   protected implicit def toS(value : String) = new AttributeValue().withS(value)
   protected def toN[A: Numeric](number: A) =  new AttributeValue().withN(number.toString)
 
-  protected def key(attrName:String, attrType: String) = new KeySchemaElement().withAttributeName(attrName).withAttributeType(attrType)
+  protected def defineAttribute(attrName:String, attrType: String) =
+    new AttributeDefinition()
+      .withAttributeName(attrName)
+      .withAttributeType(attrType)
 
   protected def table : String
   def toDynamo(t:T) : Map[String, AttributeValue]
   def fromDynamo(attributes: Map[String, AttributeValue]) : T
   def table(prefix: String): String = prefix + table
-  def key: KeySchemaElement = key("id", "S")
-  def range: Option[KeySchemaElement] = None
+  def key: AttributeDefinition = defineAttribute("id", "S")
+  def range: Option[AttributeDefinition] = None
 
   def asRangeAttribute(v: Any) : AttributeValue = range.getOrElse(sys.error("This table doesn't have range attribute")).getAttributeType match {
       case "S" => new AttributeValue().withS(v.toString)
@@ -71,7 +79,7 @@ object DynamoObject {
       def fromDynamo(attributes: Map[String, AttributeValue]) = construct(names.map{ name => attributes.get(name).map(_.getS).getOrElse(null)})
       def toDynamo(t: T) = names.zipWithIndex.filter{ case(name,i) => t.productElement(i) != null }.map {case (name, i) => (name, new AttributeValue().withS(t.productElement(i).toString))}.toMap
 
-      override def key = key(keyName, "S")
+      override def key = defineAttribute(keyName, "S")
       protected def table = className
     }
   }
@@ -90,7 +98,7 @@ object DynamoObject {
         sys.error("Cannot determine field order of case class " + clazz.getName)
       fields.map(_.getName)
     } catch {
-      case ex => throw new RuntimeException("Cannot automatically determine case class field names and order " +
+      case ex: Throwable => throw new RuntimeException("Cannot automatically determine case class field names and order " +
         "for '" + clazz.getName + "', please use the 'jsonFormat' overload with explicit field name specification", ex)
     }
   }

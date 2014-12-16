@@ -16,10 +16,10 @@
 
 package asyncdynamo
 
-import com.amazonaws.services.dynamodb.AmazonDynamoDB
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
 import akka.actor.ActorRef
 import akka.pattern.ask
-import com.amazonaws.services.dynamodb.model.ProvisionedThroughputExceededException
+import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughputExceededException
 import concurrent.{Future, Await}
 import concurrent.duration.Deadline
 import akka.util.Timeout
