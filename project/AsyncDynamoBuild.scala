@@ -19,8 +19,7 @@ object AsyncDynamoBuild extends Build {
         Libraries.awsSdk,
         Libraries.akkaActor,
         Libraries.scalatest,
-        Libraries.log4j,
-        Libraries.monitoring
+        Libraries.log4j
       )
     )
 }
