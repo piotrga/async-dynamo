@@ -1,6 +1,6 @@
-What is async-dynamo?
-=====================
-async-dynamo is an asynchronous scala client for Amazon Dynamo database. It is based on Akka library and provides asynchronous API.
+# async-dynamo [![Build Status](https://travis-ci.org/piotrga/async-dynamo.png)](https://travis-ci.org/piotrga/async-dynamo)
+
+async-dynamo is an asynchronous Scala client for Amazon DynamoDB. It is based on the Akka actor framework and provides an asynchronous API.
 
 Quick Start
 ===========
