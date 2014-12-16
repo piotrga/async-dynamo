@@ -146,5 +146,5 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-[user_guide]: doc/user_guide.md "User Guide"
+[user_guide]: https://github.com/piotrga/async-dynamo/wiki/User-Guide
 [license]: http://www.apache.org/licenses/LICENSE-2.0
