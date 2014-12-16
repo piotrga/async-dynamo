@@ -43,6 +43,11 @@ case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(imp
         List(dyn.hashAttrib)
     }
 
+    val localSecondaryIndexesAttribs = (for (secondaryIndex <- dyn.localSecondaryIndexes) yield secondaryIndex.getAllAttribs()).flatten.toList
+    val globalSecondaryIndexesAttribs= (for (secondaryIndex <- dyn.globalSecondaryIndexes) yield secondaryIndex.getAllAttribs()).flatten.toList
+
+    val allAttribs = (keyAttribs ::: localSecondaryIndexesAttribs ::: globalSecondaryIndexesAttribs).distinct
+
     val provisionedThroughput = new ProvisionedThroughput()
       .withReadCapacityUnits(readThroughput)
       .withWriteCapacityUnits(writeThrougput)
@@ -51,7 +56,36 @@ case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(imp
       .withTableName(dyn.table(tablePrefix))
       .withKeySchema( seqAsJavaList(keySchemas) )
       .withProvisionedThroughput(provisionedThroughput)
-      .withAttributeDefinitions(keyAttribs)
+      .withAttributeDefinitions(allAttribs)
+
+    //LocalSecondaryIndexes
+    val localSecondaryIndexes = for (secondaryIndex <- dyn.localSecondaryIndexes)
+    yield {
+      new com.amazonaws.services.dynamodbv2.model.LocalSecondaryIndex()
+        .withIndexName(secondaryIndex.name)
+        .withKeySchema(secondaryIndex.createKeySchemaElement)
+        .withProjection(new Projection().withProjectionType(ProjectionType.ALL))
+    }
+
+    if (localSecondaryIndexes.size > 0)
+      request.setLocalSecondaryIndexes( localSecondaryIndexes )
+
+    //GlobalSecondaryIndexes
+    val globalSecondaryIndexes = for (secondaryIndex <- dyn.globalSecondaryIndexes)
+    yield {
+      val provisionedThroughput = new ProvisionedThroughput()
+        .withReadCapacityUnits(secondaryIndex.readThroughput)
+        .withWriteCapacityUnits(secondaryIndex.writeThrougput)
+
+      new com.amazonaws.services.dynamodbv2.model.GlobalSecondaryIndex()
+        .withIndexName(secondaryIndex.name)
+        .withKeySchema(secondaryIndex.createKeySchemaElement)
+        .withProvisionedThroughput(provisionedThroughput)
+        .withProjection(new Projection().withProjectionType(ProjectionType.ALL))
+    }
+
+    if (globalSecondaryIndexes.size > 0)
+      request.setGlobalSecondaryIndexes( globalSecondaryIndexes )
 
     db.createTable(request)
   }

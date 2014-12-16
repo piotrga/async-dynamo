@@ -37,7 +37,7 @@ object DynamoTestDataObjects{
   implicit object DynamoTestWithRangeDO extends DynamoObject[DynamoTestWithRangeObject]{
     def toDynamo(t: DynamoTestWithRangeObject) = Map("id"->t.id, "rangeValue"->t.rangeValue, "otherValue" -> t.otherValue)
     def fromDynamo(a: Map[String, AttributeValue]) = DynamoTestWithRangeObject(a("id").getS, a("rangeValue").getS, a("otherValue").getS)
-    protected val table = "%s_dynamotest_withrange" format Option(System.getenv("USER")).getOrElse("unknown")
+    protected val table = "%s_dynamotest_with_range" format Option(System.getenv("USER")).getOrElse("unknown")
 
     override def hashKey = ("id", "S")
     override def rangeKey = Some(("rangeValue", "S"))
@@ -51,6 +51,34 @@ object DynamoTestDataObjects{
 
     override def hashKey = ("id", "S")
     override def rangeKey = Some(("rangeValue", "N"))
+  }
+
+  case class DynamoTestWithLocalSecondaryIndexObject(id:String, rangeValue:Int, someValue:String)
+  implicit object DynamoTestWithLocalSecondaryIndexObjectDO extends DynamoObject[DynamoTestWithLocalSecondaryIndexObject]{
+    def toDynamo(t: DynamoTestWithLocalSecondaryIndexObject) = Map("id"->t.id, "rangeValue"->toN(t.rangeValue), "someValue"->t.someValue)
+    def fromDynamo(a: Map[String, AttributeValue]) = DynamoTestWithLocalSecondaryIndexObject(a("id").getS, a("rangeValue").getN.toInt, a("someValue").getS)
+
+    override def hashKey = ("id", "S")
+    override def rangeKey = Some(("rangeValue", "N"))
+
+    val secIdx = LocalSecondaryIndex("TestSecondaryIndex",("id", "S"),Some(("someValue", "S")))
+    override def localSecondaryIndexes = Seq(secIdx)
+
+    protected val table = "%s_dynamotest_with_local_secondary_index" format Option(System.getenv("USER")).getOrElse("unknown")
+  }
+
+  case class DynamoTestWithGlobalSecondaryIndexObject(id:String, rangeValue:Int, someValue:String)
+  implicit object DynamoTestWithGlobalSecondaryIndexObjectDO extends DynamoObject[DynamoTestWithGlobalSecondaryIndexObject]{
+    def toDynamo(t: DynamoTestWithGlobalSecondaryIndexObject) = Map("id"->t.id, "rangeValue"->toN(t.rangeValue), "someValue"->t.someValue)
+    def fromDynamo(a: Map[String, AttributeValue]) = DynamoTestWithGlobalSecondaryIndexObject(a("id").getS, a("rangeValue").getN.toInt, a("someValue").getS)
+
+    override def hashKey = ("id", "S")
+    override def rangeKey = Some(("rangeValue", "N"))
+
+    val secIdx = GlobalSecondaryIndex("TestSecondaryIndex",("rangeValue", "N"),Some(("someValue", "S")))
+    override def globalSecondaryIndexes = Seq(secIdx)
+
+    protected val table = "%s_dynamotest_with_global_secondary_index" format Option(System.getenv("USER")).getOrElse("unknown")
   }
 
   case class Broken(id:String)
@@ -79,16 +107,20 @@ trait DynamoTestObjectSupport extends DynamoSupport{ self : Suite =>
 
   protected def createTables() {
     println("Creating test tables... It might take a while...")
-    if (!TableExists[DynamoTestObject]().blockingExecute){
+    if (!TableExists[DynamoTestObject]().blockingExecute)
       CreateTable[DynamoTestObject]().blockingExecute(dynamo,1 minute)
-    }
-    if (!TableExists[DynamoTestWithRangeObject]().blockingExecute){
-      CreateTable[DynamoTestWithRangeObject](100, 100).blockingExecute(dynamo,1 minute)
-    }
 
-    if (!TableExists[DynamoTestWithNumericRangeObject]().blockingExecute){
+    if (!TableExists[DynamoTestWithRangeObject]().blockingExecute)
+      CreateTable[DynamoTestWithRangeObject](100, 100).blockingExecute(dynamo,1 minute)
+
+    if (!TableExists[DynamoTestWithNumericRangeObject]().blockingExecute)
       CreateTable[DynamoTestWithNumericRangeObject](100, 100).blockingExecute(dynamo,1 minute)
-    }
+
+    if (!TableExists[DynamoTestWithLocalSecondaryIndexObject]().blockingExecute)
+      CreateTable[DynamoTestWithLocalSecondaryIndexObject](10, 10).blockingExecute(dynamo,1 minute)
+
+    if (!TableExists[DynamoTestWithGlobalSecondaryIndexObject]().blockingExecute)
+      CreateTable[DynamoTestWithGlobalSecondaryIndexObject](10, 10).blockingExecute(dynamo,1 minute)
   }
 }
 
