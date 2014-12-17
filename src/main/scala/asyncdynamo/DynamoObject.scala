@@ -18,6 +18,7 @@ package asyncdynamo
 
 import com.amazonaws.services.dynamodbv2.model._
 import scala.Some
+import scala.reflect.ClassTag
 
 trait SecondaryIndex{
   def name:String
@@ -75,6 +76,7 @@ trait DynamoObject[T]{
   def globalSecondaryIndexes: Seq[GlobalSecondaryIndex] = Seq()
 }
 
+
 object DynamoObject {
 
   type KeyDefinition = Tuple2[String,String] //name, type
@@ -89,19 +91,19 @@ object DynamoObject {
    * @param construct case class
    * @return object extending DynamoObject trait which can be used as implicit with dynamo operations.
    */
-  def of1[T <: Product :ClassManifest](construct : String => T) = apply((args : Seq[String]) => construct(args(0)))
-  def of2[T <: Product :ClassManifest](construct : (String, String) => T) = apply((args : Seq[String]) => construct(args(0), args(1)))
-  def of3[T <: Product :ClassManifest](construct : (String, String, String) => T) = apply((args : Seq[String]) => construct(args(0), args(1), args(2)))
-  def of4[T <: Product :ClassManifest](construct : (String, String, String, String) => T) = apply((args : Seq[String]) => construct(args(0), args(1), args(2), args(3)))
-  def of5[T <: Product :ClassManifest](construct : (String, String, String, String, String) => T) = apply((args : Seq[String]) => construct(args(0), args(1), args(2), args(3), args(4)))
-  def of6[T <: Product :ClassManifest](construct : (String, String, String, String, String, String) => T) = apply((args : Seq[String]) => construct(args(0), args(1), args(2), args(3), args(4), args(5)))
-  def of7[T <: Product :ClassManifest](construct : (String, String, String, String, String, String, String) => T) = apply((args : Seq[String]) => construct(args(0), args(1), args(2), args(3), args(4), args(5), args(6)))
-  def of8[T <: Product :ClassManifest](construct : (String, String, String, String, String, String, String, String) => T) = apply((args : Seq[String]) => construct(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7)))
+  def of1[T <: Product :ClassTag](construct : String => T) = apply((args : Seq[String]) => construct(args(0)))
+  def of2[T <: Product :ClassTag](construct : (String, String) => T) = apply((args : Seq[String]) => construct(args(0), args(1)))
+  def of3[T <: Product :ClassTag](construct : (String, String, String) => T) = apply((args : Seq[String]) => construct(args(0), args(1), args(2)))
+  def of4[T <: Product :ClassTag](construct : (String, String, String, String) => T) = apply((args : Seq[String]) => construct(args(0), args(1), args(2), args(3)))
+  def of5[T <: Product :ClassTag](construct : (String, String, String, String, String) => T) = apply((args : Seq[String]) => construct(args(0), args(1), args(2), args(3), args(4)))
+  def of6[T <: Product :ClassTag](construct : (String, String, String, String, String, String) => T) = apply((args : Seq[String]) => construct(args(0), args(1), args(2), args(3), args(4), args(5)))
+  def of7[T <: Product :ClassTag](construct : (String, String, String, String, String, String, String) => T) = apply((args : Seq[String]) => construct(args(0), args(1), args(2), args(3), args(4), args(5), args(6)))
+  def of8[T <: Product :ClassTag](construct : (String, String, String, String, String, String, String, String) => T) = apply((args : Seq[String]) => construct(args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7)))
 
-  def apply[T <: Product :ClassManifest]( construct : Seq[String] => T) : DynamoObject[T] = {
-    lazy val names = extractFieldNames(classManifest[T])
+  def apply[T <: Product :ClassTag]( construct : Seq[String] => T) : DynamoObject[T] = {
+    lazy val names = extractFieldNames
     lazy val keyName = names(0)
-    lazy val className = classManifest.erasure.getSimpleName
+    lazy val className = getSimpleName
 
 
     new DynamoObject[T] {
@@ -114,18 +116,24 @@ object DynamoObject {
     }
   }
 
-  protected def extractFieldNames(classManifest: ClassManifest[_]): Array[String] = {
-    val clazz = classManifest.erasure
+  protected def getSimpleName[T](implicit ev: ClassTag[T]) = ev.runtimeClass.getSimpleName
+
+  protected def extractFieldNames[T](implicit ev: ClassTag[T]): Array[String] = {
+    val clazz = ev.runtimeClass
     try {
       // copy methods have the form copy$default$N(), we need to sort them in order, but must account for the fact
       // that lexical sorting of ...8(), ...9(), ...10() is not correct, so we extract N and sort by N.toInt
       val copyDefaultMethods = clazz.getMethods.filter(_.getName.startsWith("copy$default$")).sortBy(
         _.getName.drop("copy$default$".length).takeWhile(_ != '(').toInt)
+
       val fields = clazz.getDeclaredFields.filterNot(_.getName.startsWith("$"))
+
       if (copyDefaultMethods.length != fields.length)
         sys.error("Case class " + clazz.getName + " declares additional fields")
+
       if (fields.zip(copyDefaultMethods).exists { case (f, m) => f.getType != m.getReturnType })
         sys.error("Cannot determine field order of case class " + clazz.getName)
+
       fields.map(_.getName)
     } catch {
       case ex: Throwable => throw new RuntimeException("Cannot automatically determine case class field names and order " +
