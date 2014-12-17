@@ -135,7 +135,7 @@ In order to release a new version:
 
 ## Copyright and license
 
-Copyright 2012-2014 2ndlanguage Limited. This product includes software developed at 2ndlanguage Limited.
+Copyright 2012-2015 2ndlanguage Limited. This product includes software developed at 2ndlanguage Limited.
 
 Licensed under the [Apache License, Version 2.0] [license] (the "License");
 you may not use this software except in compliance with the License.

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 2ndlanguage Limited.
+ * Copyright 2012-2015 2ndlanguage Limited.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-
 package com.github.piotrga.asyncdynamo
 
 import akka.actor._
