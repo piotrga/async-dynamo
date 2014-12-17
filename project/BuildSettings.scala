@@ -9,6 +9,7 @@ object BuildSettings {
     version       := "1.7.1",
     description   := "Asynchronous Scala client for Amazon DynamoDB",
     scalaVersion  := "2.10.1",
+    crossScalaVersions := Seq("2.10.1", "2.11.4"),
     scalacOptions := Seq("-deprecation", "-feature", "-encoding", "utf8"),
     resolvers     ++= Dependencies.resolutionRepos
   )
