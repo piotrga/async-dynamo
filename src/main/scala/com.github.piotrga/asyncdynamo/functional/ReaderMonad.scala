@@ -16,7 +16,8 @@
 package com.github.piotrga.asyncdynamo
 package functional
 
-import scala.language.implicitConversions
+// Scala
+import language.implicitConversions
 
 /**
  * This reader monad in combination with CassandraOperation makes Cassandra operations composable, so we can do:

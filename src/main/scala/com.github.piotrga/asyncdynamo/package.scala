@@ -15,9 +15,12 @@
  */
 package com.github.piotrga.asyncdynamo
 
+// AWS SDK
+import com.amazonaws.services.dynamodbv2.model.AttributeValue
+
+// Akka
 import akka.actor.ActorRef
 import akka.util.Timeout
-import com.amazonaws.services.dynamodbv2.model.AttributeValue
 
 // This project
 import nonblocking.ColumnCondition

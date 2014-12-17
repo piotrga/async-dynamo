@@ -16,17 +16,19 @@
 package com.github.piotrga.asyncdynamo
 package nonblocking
 
-import scala.collection.JavaConverters._
+// Scala
+import collection.JavaConverters._
+import collection.JavaConversions._
+import concurrent.{ExecutionContext, Future, Promise}
+
+// AWS SDK
 import com.amazonaws.services.dynamodbv2.model._
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
 import com.amazonaws.services.dynamodbv2
+
+// Akka
 import akka.actor.{ActorRef}
 import akka.util.Timeout
-
-import concurrent.{ExecutionContext, Future, Promise}
-import collection.JavaConversions._
-import scala.Some
-import scala.collection.JavaConversions._
 
 // This project
 import functional._

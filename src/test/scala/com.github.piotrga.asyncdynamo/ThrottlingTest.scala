@@ -15,14 +15,19 @@
  */
 package com.github.piotrga.asyncdynamo
 
+// Java
 import java.util.UUID
-import akka.util.Timeout
-import akka.actor.{ActorRef, Actor, Props, ActorSystem}
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.{TimeUnit, CountDownLatch}
+
+// Scala
 import util.{Success, Failure}
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.language.postfixOps
+import concurrent.ExecutionContext.Implicits.global
+import language.postfixOps
+
+// Akka
+import akka.util.Timeout
+import akka.actor.{ActorRef, Actor, Props, ActorSystem}
 
 // This project
 import nonblocking.Query

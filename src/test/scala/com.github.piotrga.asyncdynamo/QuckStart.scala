@@ -15,11 +15,14 @@
  */
 package com.github.piotrga.asyncdynamo
 
-import akka.util.Timeout
-import scala.concurrent.duration._
+// Scala
+import concurrent.duration._
+import concurrent.ExecutionContext.Implicits.global
+import language.postfixOps
 import util.Success
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.language.postfixOps
+
+// Akka
+import akka.util.Timeout
 
 // This project
 import nonblocking._

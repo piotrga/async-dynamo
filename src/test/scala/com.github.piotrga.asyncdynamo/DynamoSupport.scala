@@ -15,12 +15,18 @@
  */
 package com.github.piotrga.asyncdynamo
 
+// Scala
+import concurrent.duration._
+import language.postfixOps
 
-import org.scalatest.{BeforeAndAfterAll, Suite}
-import akka.util.Timeout
-import scala.concurrent.duration._
+// AWS SDK
 import com.amazonaws.services.dynamodbv2.model.AttributeValue
-import scala.language.postfixOps
+
+// ScalaTest
+import org.scalatest.{BeforeAndAfterAll, Suite}
+
+// Akka
+import akka.util.Timeout
 
 // This project
 import nonblocking.{CreateTable, TableExists}

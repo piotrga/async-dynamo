@@ -16,10 +16,15 @@
 package com.github.piotrga.asyncdynamo
 package functional
 
+// Scala
+import language.postfixOps
+
+// ScalaTest
 import org.scalatest.FreeSpec
 import org.scalatest.matchers.MustMatchers
+
+// This project
 import Iteratee._
-import scala.language.postfixOps
 
 class IterateeTest extends FreeSpec with MustMatchers{
 

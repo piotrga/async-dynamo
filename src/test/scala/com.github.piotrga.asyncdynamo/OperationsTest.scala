@@ -15,16 +15,24 @@
  */
 package com.github.piotrga.asyncdynamo
 
-import org.scalatest.matchers.MustMatchers
-import org.scalatest.FreeSpec
+// Java
 import java.util.UUID
 
-import akka.actor.{Actor, Props, ActorSystem}
+// Scala
 import concurrent.{Future, Await}
-import scala.concurrent.ExecutionContext.Implicits.global
+import concurrent.ExecutionContext.Implicits.global
+import annotation.tailrec
+import language.postfixOps
+
+// AWS SDK
 import com.amazonaws.services.dynamodbv2.model.{ConditionalCheckFailedException, ComparisonOperator, ScalarAttributeType}
-import scala.annotation.tailrec
-import scala.language.postfixOps
+
+// ScalaTest
+import org.scalatest.matchers.MustMatchers
+import org.scalatest.FreeSpec
+
+// Akka
+import akka.actor.{Actor, Props, ActorSystem}
 
 // This project
 import nonblocking._

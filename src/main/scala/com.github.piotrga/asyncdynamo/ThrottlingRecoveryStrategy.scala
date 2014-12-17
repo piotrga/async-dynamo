@@ -15,9 +15,14 @@
  */
 package com.github.piotrga.asyncdynamo
 
-import akka.actor.ActorSystem
-import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughputExceededException
+// Scala
 import concurrent.duration.FiniteDuration
+
+// AWS SDK
+import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughputExceededException
+
+// Akka
+import akka.actor.ActorSystem
 
 trait ThrottlingRecoveryStrategy{
   def amazonMaxErrorRetry : Int

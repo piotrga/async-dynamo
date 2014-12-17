@@ -16,15 +16,20 @@
 package com.github.piotrga.asyncdynamo
 package nonblocking
 
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
-import com.amazonaws.services.dynamodbv2.model._
-import akka.actor.{ActorSystem, ActorRef}
-import akka.util.Timeout
-import scala.concurrent.duration._
+// Scala
+import concurrent.duration._
 import concurrent.{Promise, Future, Await}
 import util.{Failure, Success}
 import collection.JavaConversions._
-import scala.language.postfixOps
+import language.postfixOps
+
+// AWS SDK
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
+import com.amazonaws.services.dynamodbv2.model._
+
+// Akka
+import akka.actor.{ActorSystem, ActorRef}
+import akka.util.Timeout
 
 case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
   def execute(db: AmazonDynamoDB, tablePrefix:String) {

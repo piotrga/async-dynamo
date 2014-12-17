@@ -15,12 +15,17 @@
  */
 package com.github.piotrga.asyncdynamo
 
+// Scala
+import concurrent.duration._
+import annotation.tailrec
+import language.postfixOps
+
+// Java
+import java.util.concurrent.TimeoutException
+
+// ScalaTest
 import org.scalatest.FreeSpec
 import org.scalatest.matchers.MustMatchers
-import scala.concurrent.duration._
-import java.util.concurrent.TimeoutException
-import annotation.tailrec
-import scala.language.postfixOps
 
 // This project
 import blocking._

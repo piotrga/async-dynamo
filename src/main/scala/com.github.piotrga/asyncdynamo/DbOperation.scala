@@ -15,14 +15,19 @@
  */
 package com.github.piotrga.asyncdynamo
 
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
-import akka.actor.ActorRef
-import akka.pattern.ask
-import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughputExceededException
+// Scala
 import concurrent.{Future, Await}
 import concurrent.duration.Deadline
-import akka.util.Timeout
 import reflect.ClassTag
+
+// AWS SDK
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
+import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughputExceededException
+
+// Akka
+import akka.actor.ActorRef
+import akka.pattern.ask
+import akka.util.Timeout
 
 object DbOperation{
   val DEBUG = sys.props.get("asyncdynamo.debug")

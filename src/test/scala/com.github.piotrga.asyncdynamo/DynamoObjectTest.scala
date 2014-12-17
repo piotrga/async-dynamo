@@ -15,10 +15,13 @@
  */
 package com.github.piotrga.asyncdynamo
 
+// Scala
+import concurrent.duration._
+import language.postfixOps
+
+// ScalaTest
 import org.scalatest.matchers.MustMatchers
 import org.scalatest.FreeSpec
-import scala.concurrent.duration._
-import scala.language.postfixOps
 
 // This project
 import nonblocking.{Read, Save, CreateTable, TableExists}

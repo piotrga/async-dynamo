@@ -15,18 +15,23 @@
  */
 package com.github.piotrga.asyncdynamo
 
-import akka.actor._
+// Scala
+import language.existentials
+import language.implicitConversions
+import concurrent.duration._
+
+// AWS SDK
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
 import com.amazonaws.ClientConfiguration
 import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
+import com.amazonaws.services.dynamodbv2.model._
+
+// Akka
+import akka.actor._
 import akka.routing.SmallestMailboxRouter
 import com.typesafe.config.ConfigFactory
-import com.amazonaws.services.dynamodbv2.model._
 import akka.actor.Status.Failure
-import concurrent.duration._
-import scala.language.existentials
-import scala.language.implicitConversions
 
 // This project
 import Operation.Type

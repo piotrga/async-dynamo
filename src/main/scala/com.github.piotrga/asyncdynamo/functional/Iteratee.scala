@@ -16,11 +16,11 @@
 package com.github.piotrga.asyncdynamo
 package functional
 
+// Scala
 import annotation.tailrec
 import concurrent.{ExecutionContext, Promise, Future}
 import util.{Try, Failure, Success}
-import scala.language.reflectiveCalls
-
+import language.reflectiveCalls
 
 sealed trait Iteratee[E, A]{
   def map[B](g: B => E) : Iteratee[B, A] = this match {

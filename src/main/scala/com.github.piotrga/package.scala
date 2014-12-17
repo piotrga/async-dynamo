@@ -15,11 +15,16 @@
  */
 package com.github.piotrga
 
+// Scala
+import concurrent.Future
+import language.implicitConversions
+
+// AWS SDK
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
+
+// Akka
 import akka.actor.ActorRef
 import akka.util.Timeout
-import concurrent.Future
-import scala.language.implicitConversions
 
 package object asyncdynamo {
 

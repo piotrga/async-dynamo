@@ -15,9 +15,12 @@
  */
 package com.github.piotrga.asyncdynamo
 
+// Java
+import java.util.UUID
+
+// ScalaTest
 import org.scalatest.matchers.MustMatchers
 import org.scalatest.FreeSpec
-import java.util.UUID
 
 // This project
 import DynamoTestDataObjects.DynamoTestObject
