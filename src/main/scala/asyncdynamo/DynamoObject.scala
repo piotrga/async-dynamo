@@ -19,6 +19,8 @@ package asyncdynamo
 import com.amazonaws.services.dynamodbv2.model._
 import scala.Some
 import scala.reflect.ClassTag
+import scala.language.implicitConversions
+import scala.language.reflectiveCalls
 
 trait SecondaryIndex{
   def name:String

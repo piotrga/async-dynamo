@@ -19,6 +19,7 @@ package asyncdynamo
 import org.scalatest.matchers.MustMatchers
 import org.scalatest.FreeSpec
 import scala.concurrent.duration._
+import scala.language.postfixOps
 
 import asyncdynamo.nonblocking.{Read, Save, CreateTable, TableExists}
 

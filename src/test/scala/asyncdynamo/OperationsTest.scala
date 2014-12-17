@@ -33,6 +33,7 @@ import asyncdynamo.blocking.Save
 import asyncdynamo.nonblocking.QueryIndex
 import asyncdynamo.nonblocking.ColumnCondition
 import scala.annotation.tailrec
+import scala.language.postfixOps
 
 
 class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSupport{

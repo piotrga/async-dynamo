@@ -3,6 +3,7 @@ package asyncdynamo.functional
 import annotation.tailrec
 import concurrent.{ExecutionContext, Promise, Future}
 import util.{Try, Failure, Success}
+import scala.language.reflectiveCalls
 
 
 sealed trait Iteratee[E, A]{

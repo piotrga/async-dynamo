@@ -18,6 +18,7 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
 import akka.actor.ActorRef
 import akka.util.Timeout
 import concurrent.Future
+import scala.language.implicitConversions
 
 package object asyncdynamo {
 

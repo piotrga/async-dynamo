@@ -22,6 +22,7 @@ import scala.concurrent.duration._
 import java.util.concurrent.TimeoutException
 import annotation.tailrec
 import asyncdynamo.blocking._
+import scala.language.postfixOps
 
 class AdminOperationsTest extends FreeSpec with MustMatchers with DynamoSupport{
   case class AdminTest(id:String, value: String)

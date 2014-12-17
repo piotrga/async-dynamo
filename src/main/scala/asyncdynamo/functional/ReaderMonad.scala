@@ -16,6 +16,8 @@
 
 package asyncdynamo.functional
 
+import scala.language.implicitConversions
+
 /**
  * This reader monad in combination with CassandraOperation makes Cassandra operations composable, so we can do:
  * {{{op1 flatMap(r => op2(r))}}}

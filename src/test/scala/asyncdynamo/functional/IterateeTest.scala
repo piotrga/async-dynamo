@@ -3,6 +3,7 @@ package asyncdynamo.functional
 import org.scalatest.FreeSpec
 import org.scalatest.matchers.MustMatchers
 import Iteratee._
+import scala.language.postfixOps
 
 class IterateeTest extends FreeSpec with MustMatchers{
 

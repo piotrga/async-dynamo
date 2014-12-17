@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.{TimeUnit, CountDownLatch}
 import util.{Success, Failure}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.language.postfixOps
 
 
 object ThrottlingTest extends  App{

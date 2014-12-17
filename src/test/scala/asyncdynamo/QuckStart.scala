@@ -22,6 +22,7 @@ import akka.util.Timeout
 import scala.concurrent.duration._
 import util.Success
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.language.postfixOps
 
 
 object QuckStart extends App{
