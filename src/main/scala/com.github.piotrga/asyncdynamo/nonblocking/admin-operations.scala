@@ -14,14 +14,14 @@
  *    limitations under the License.
  */
 
-package asyncdynamo.nonblocking
+package com.github.piotrga.asyncdynamo
+package nonblocking
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
 import com.amazonaws.services.dynamodbv2.model._
 import akka.actor.{ActorSystem, ActorRef}
 import akka.util.Timeout
 import scala.concurrent.duration._
-import asyncdynamo._
 import concurrent.{Promise, Future, Await}
 import util.{Failure, Success}
 import collection.JavaConversions._

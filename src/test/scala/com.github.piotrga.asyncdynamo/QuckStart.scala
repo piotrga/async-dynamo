@@ -15,15 +15,16 @@
  *    limitations under the License.
  */
 
-package asyncdynamo
+package com.github.piotrga.asyncdynamo
 
-import nonblocking._
 import akka.util.Timeout
 import scala.concurrent.duration._
 import util.Success
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 
+// This project
+import nonblocking._
 
 object QuckStart extends App{
   implicit val dynamo = Dynamo(DynamoConfig(System.getProperty("amazon.accessKey"), System.getProperty("amazon.secret"), tablePrefix = "devng_", endpointUrl = System.getProperty("dynamo.url", "https://dynamodb.eu-west-1.amazonaws.com")), connectionCount = 3)

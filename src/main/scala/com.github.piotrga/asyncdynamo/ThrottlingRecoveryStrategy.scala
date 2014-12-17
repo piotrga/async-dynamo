@@ -1,4 +1,4 @@
-package asyncdynamo
+package com.github.piotrga.asyncdynamo
 
 import akka.actor.ActorSystem
 import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughputExceededException

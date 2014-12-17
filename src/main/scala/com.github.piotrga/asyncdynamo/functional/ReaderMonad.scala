@@ -14,7 +14,8 @@
  *    limitations under the License.
  */
 
-package asyncdynamo.functional
+package com.github.piotrga.asyncdynamo
+package functional
 
 import scala.language.implicitConversions
 

@@ -14,15 +14,15 @@
  *    limitations under the License.
  */
 
-package asyncdynamo
+package com.github.piotrga.asyncdynamo
 
 import org.scalatest.matchers.MustMatchers
 import org.scalatest.FreeSpec
 import java.util.UUID
-import asyncdynamo.DynamoTestDataObjects.DynamoTestObject
-import asyncdynamo.nonblocking.Read
-import asyncdynamo.nonblocking.Save
 
+// This project
+import DynamoTestDataObjects.DynamoTestObject
+import nonblocking.{Read, Save}
 
 class DynamoReaderMonadTest extends FreeSpec with MustMatchers with DynamoTestObjectSupport{
 

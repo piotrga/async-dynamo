@@ -14,10 +14,8 @@
  *    limitations under the License.
  */
 
-package asyncdynamo
+package com.github.piotrga.asyncdynamo
 
-import nonblocking.Query
-import asyncdynamo.DynamoTestDataObjects.DynamoTestWithRangeObject
 import java.util.UUID
 import akka.util.Timeout
 import akka.actor.{ActorRef, Actor, Props, ActorSystem}
@@ -27,6 +25,9 @@ import util.{Success, Failure}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 
+// This project
+import nonblocking.Query
+import DynamoTestDataObjects.DynamoTestWithRangeObject
 
 object ThrottlingTest extends  App{
   def main(args : Seq[String]){

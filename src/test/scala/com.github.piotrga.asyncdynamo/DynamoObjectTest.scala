@@ -14,14 +14,15 @@
  *    limitations under the License.
  */
 
-package asyncdynamo
+package com.github.piotrga.asyncdynamo
 
 import org.scalatest.matchers.MustMatchers
 import org.scalatest.FreeSpec
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-import asyncdynamo.nonblocking.{Read, Save, CreateTable, TableExists}
+// This project
+import nonblocking.{Read, Save, CreateTable, TableExists}
 
 class DynamoObjectTest extends FreeSpec with MustMatchers with DynamoSupport{
 

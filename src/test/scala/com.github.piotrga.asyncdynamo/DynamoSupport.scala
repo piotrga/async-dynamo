@@ -14,14 +14,17 @@
  *    limitations under the License.
  */
 
-package asyncdynamo
+package com.github.piotrga.asyncdynamo
 
-import nonblocking.{CreateTable, TableExists}
+
 import org.scalatest.{BeforeAndAfterAll, Suite}
 import akka.util.Timeout
 import scala.concurrent.duration._
 import com.amazonaws.services.dynamodbv2.model.AttributeValue
 import scala.language.postfixOps
+
+// This project
+import nonblocking.{CreateTable, TableExists}
 
 object DynamoTestDataObjects{
   case class DynamoTestObject(id:String, someValue:String)

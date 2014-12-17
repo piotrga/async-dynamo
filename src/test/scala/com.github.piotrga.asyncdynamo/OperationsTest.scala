@@ -14,10 +14,8 @@
  *    limitations under the License.
  */
 
-package asyncdynamo
+package com.github.piotrga.asyncdynamo
 
-import functional.Done
-import asyncdynamo.nonblocking._
 import org.scalatest.matchers.MustMatchers
 import org.scalatest.FreeSpec
 import java.util.UUID
@@ -26,15 +24,14 @@ import akka.actor.{Actor, Props, ActorSystem}
 import concurrent.{Future, Await}
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.amazonaws.services.dynamodbv2.model.{ConditionalCheckFailedException, ComparisonOperator, ScalarAttributeType}
-import asyncdynamo.functional.Done
-import asyncdynamo.blocking.DeleteById
-import asyncdynamo.blocking.Read
-import asyncdynamo.blocking.Save
-import asyncdynamo.nonblocking.QueryIndex
-import asyncdynamo.nonblocking.ColumnCondition
 import scala.annotation.tailrec
 import scala.language.postfixOps
 
+// This project
+import nonblocking._
+import functional.Done
+import blocking.{DeleteById, Read, Save}
+import nonblocking.{QueryIndex, ColumnCondition}
 
 class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSupport{
   import DynamoTestDataObjects._
@@ -179,7 +176,7 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     Save(obj1)
     Save(obj2)
 
-    val eh = asyncdynamo.nonblocking.Read[DynamoTestWithRangeObject](id, Some("1")).blockingExecute
+    val eh = nonblocking.Read[DynamoTestWithRangeObject](id, Some("1")).blockingExecute
 
     assert(eh === Some(obj1))
   }
@@ -217,8 +214,7 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
   }
 
   "Query iteratee" in {
-    import asyncdynamo.functional.Iteratee._
-    import asyncdynamo._
+    import functional.Iteratee._
     val N = 5
     val objs = givenTestObjectsInDb(N)
     val it = Await.result(Query[DynamoTestWithRangeObject](objs(0).id, "GT", List("0")).run(takeAll()), 5 seconds)
@@ -287,7 +283,7 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     try {
       DeleteById[DynamoTestObject](obj.id, expected = Map("someValue" -> "fdgfd"))
     } catch {
-      case tpe: asyncdynamo.ThirdPartyException => tpe.getCause.getCause match {
+      case tpe: ThirdPartyException => tpe.getCause.getCause match {
         case ccfe: ConditionalCheckFailedException => "Expected"
         case e: Exception => fail(e)
       }
@@ -335,7 +331,7 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     try {
       nonblocking.DeleteByRange[DynamoTestWithRangeObject](id, range = "1", expected = Map("otherValue" -> "value 100010")) blockingExecute
     } catch {
-      case tpe: asyncdynamo.ThirdPartyException => tpe.getCause.getCause match {
+      case tpe: ThirdPartyException => tpe.getCause.getCause match {
         case ccfe: ConditionalCheckFailedException => "Expected"
         case e: Exception => fail(e)
       }

@@ -14,15 +14,17 @@
  *    limitations under the License.
  */
 
-package asyncdynamo
+package com.github.piotrga.asyncdynamo
 
 import org.scalatest.FreeSpec
 import org.scalatest.matchers.MustMatchers
 import scala.concurrent.duration._
 import java.util.concurrent.TimeoutException
 import annotation.tailrec
-import asyncdynamo.blocking._
 import scala.language.postfixOps
+
+// This project
+import blocking._
 
 class AdminOperationsTest extends FreeSpec with MustMatchers with DynamoSupport{
   case class AdminTest(id:String, value: String)

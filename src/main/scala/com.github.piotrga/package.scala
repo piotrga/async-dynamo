@@ -14,6 +14,8 @@
  *    limitations under the License.
  */
 
+package com.github.piotrga
+
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
 import akka.actor.ActorRef
 import akka.util.Timeout

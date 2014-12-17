@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-package asyncdynamo
+package com.github.piotrga.asyncdynamo
 
 import akka.actor._
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
@@ -25,10 +25,12 @@ import akka.routing.SmallestMailboxRouter
 import com.typesafe.config.ConfigFactory
 import com.amazonaws.services.dynamodbv2.model._
 import akka.actor.Status.Failure
-import asyncdynamo.Operation.Type
 import concurrent.duration._
 import scala.language.existentials
 import scala.language.implicitConversions
+
+// This project
+import Operation.Type
 
 class Dynamo(config: DynamoConfig) extends Actor {
 

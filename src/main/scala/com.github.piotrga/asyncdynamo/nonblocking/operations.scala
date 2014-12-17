@@ -14,21 +14,24 @@
  *    limitations under the License.
  */
 
-package asyncdynamo.nonblocking
+package com.github.piotrga.asyncdynamo
+package nonblocking
 
 import scala.collection.JavaConverters._
 import com.amazonaws.services.dynamodbv2.model._
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
 import com.amazonaws.services.dynamodbv2
-import asyncdynamo.{ThirdPartyException, functional, DynamoObject, DbOperation}
 import akka.actor.{ActorRef}
 import akka.util.Timeout
-import asyncdynamo.functional._
-import asyncdynamo.functional.Iteratee._
+
 import concurrent.{ExecutionContext, Future, Promise}
 import collection.JavaConversions._
 import scala.Some
 import scala.collection.JavaConversions._
+
+// This project
+import functional._
+import functional.Iteratee._
 
 case class Save[T ](o : T, overwriteExisting: Boolean = true)(implicit dyn:DynamoObject[T]) extends DbOperation[T]{
   def execute(db: AmazonDynamoDB, tablePrefix:String) : T = {

@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-package asyncdynamo
+package com.github.piotrga.asyncdynamo
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
 import akka.actor.ActorRef

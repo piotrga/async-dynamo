@@ -1,4 +1,5 @@
-package asyncdynamo.functional
+package com.github.piotrga.asyncdynamo
+package functional
 
 import org.scalatest.FreeSpec
 import org.scalatest.matchers.MustMatchers

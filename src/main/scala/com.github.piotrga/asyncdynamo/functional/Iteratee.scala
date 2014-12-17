@@ -1,4 +1,5 @@
-package asyncdynamo.functional
+package com.github.piotrga.asyncdynamo
+package functional
 
 import annotation.tailrec
 import concurrent.{ExecutionContext, Promise, Future}
