@@ -90,7 +90,7 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
       fail(new IllegalStateException("Should never get here, ConditionalCheckFailedException expected already!"))
     }
     catch {
-      case ex => {
+      case ex: Throwable => {
         getRootCause(ex) match {
           case c: ConditionalCheckFailedException => assert(true) //expected
           case u => fail(u)
@@ -123,7 +123,7 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
       fail(new IllegalStateException("Should never get here, ConditionalCheckFailedException expected already!"))
     }
     catch {
-      case ex => {
+      case ex: Throwable => {
         getRootCause(ex) match {
           case c: ConditionalCheckFailedException => assert(true) //expected
           case u => fail(u)
