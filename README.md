@@ -1,6 +1,10 @@
-# async-dynamo [![Build Status](https://travis-ci.org/piotrga/async-dynamo.png)](https://travis-ci.org/piotrga/async-dynamo)
+# async-dynamo
 
-async-dynamo is an asynchronous Scala client for Amazon DynamoDB. It is based on the Akka actor framework and provides an asynchronous API.
+[ ![Build Status] [travis-image] ] [travis]
+[ ![Release] [release-image] ] [releases]
+[ ![License] [license-image] ] [license]
+
+async-dynamo is an asynchronous Scala client for [Amazon DynamoDB] [dynamodb]. It is based on the Akka actor framework and provides an asynchronous API.
 
 ## Quick Start
 
@@ -11,9 +15,9 @@ For detailed information please read [User Guide][user_guide].
 Add this to your `built.sbt` file:
 
 ```scala
-resolvers += "SnowPlow Repo" at "http://maven.snplow.com/releases/"
+resolvers += "Snowplow Repo" at "http://maven.snplow.com/releases/"
 
-libraryDependencies += "asyncdynamo" % "async-dynamo" % "1.8.0"
+libraryDependencies += "asyncdynamo" % "async-dynamo" % "2.0.0"
 ```
 
 ### Example
@@ -146,5 +150,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-[user_guide]: https://github.com/piotrga/async-dynamo/wiki/User-Guide
+[travis-image]: https://travis-ci.org/piotrga/async-dynamo.png?branch=master
+[travis]: https://travis-ci.org/piotrga/async-dynamo
+
+[release-image]: http://img.shields.io/badge/release-2.0.0-blue.svg?style=flat
+[releases]: https://github.com/piotrga/async-dynamo/releases
+
+[license-image]: http://img.shields.io/badge/license-Apache--2-blue.svg?style=flat
 [license]: http://www.apache.org/licenses/LICENSE-2.0
+
+[dynamodb]: http://aws.amazon.com/dynamodb/
+[user_guide]: https://github.com/piotrga/async-dynamo/wiki/User-Guide
