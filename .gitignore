@@ -1,7 +1,14 @@
-.DS_Store
-.idea/
-.idea_modules/
-project/target/
+*.class
+*.log
+
+# sbt specific
+dist/*
 target/
-.history
-/sbt.sh
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+
+# Vagrant
+.vagrant
+
