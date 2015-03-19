@@ -32,14 +32,14 @@ object BuildSettings {
   // Publish settings
   // TODO: update with ivy credentials etc when we start using Nexus
   lazy val publishSettings = Seq[Setting[_]](
-   
-    crossPaths := false,
+    // Enables publishing to maven repo
+    publishMavenStyle := true,
+
     publishTo <<= version { version =>
-      val keyFile = (Path.userHome / ".ssh" / "admin_keplar.osk")
-      val basePath = "/var/www/maven.snplow.com/prod/public/%s".format {
+      val basePath = "target/repo/%s".format {
         if (version.trim.endsWith("SNAPSHOT")) "snapshots/" else "releases/"
       }
-      Some(Resolver.sftp("SnowPlow Analytics Maven repository", "prodbox", 8686, basePath) as ("admin", keyFile))
+      Some(Resolver.file("Local Maven repository", file(basePath)) transactional())
     }
   )
 
