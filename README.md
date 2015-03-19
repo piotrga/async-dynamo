@@ -17,14 +17,14 @@ Add this to your `built.sbt` file:
 ```scala
 resolvers += "Snowplow Repo" at "http://maven.snplow.com/releases/"
 
-libraryDependencies += "asyncdynamo" % "async-dynamo" % "2.0.0"
+libraryDependencies += "com.github.piotrga" %% "async-dynamo" % "2.0.0"
 ```
 
 ### Example
 
 ```scala
 
-import asyncdynamo._
+import com.github.piotrga.asyncdynamo._
 import nonblocking._
 import scala.concurrent.duration._
 import akka.util.Timeout
