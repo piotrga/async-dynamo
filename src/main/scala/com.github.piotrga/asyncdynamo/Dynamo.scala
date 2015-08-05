@@ -29,7 +29,7 @@ import com.amazonaws.services.dynamodbv2.model._
 
 // Akka
 import akka.actor._
-import akka.routing.SmallestMailboxRouter
+import akka.routing.SmallestMailboxPool
 import com.typesafe.config.ConfigFactory
 import akka.actor.Status.Failure
 
@@ -96,7 +96,7 @@ object Dynamo {
 
     system.actorOf(Props(new Actor {
       val router = context.actorOf(Props(dynamo)
-        .withRouter(SmallestMailboxRouter(connectionCount))
+        .withRouter(SmallestMailboxPool(connectionCount))
         .withDispatcher("dynamo-connection-dispatcher"), "DynamoConnection")
 
       def receive = {

@@ -21,7 +21,7 @@ import language.postfixOps
 
 // ScalaTest
 import org.scalatest.FreeSpec
-import org.scalatest.matchers.MustMatchers
+import org.scalatest.MustMatchers
 
 // This project
 import Iteratee._
