@@ -15,13 +15,15 @@
  */
 import sbt._
 import Keys._
+import bintray.AttrMap
+import bintray._
 
 object BuildSettings {
 
   // Basic settings for our app
   lazy val basicSettings = Seq[Setting[_]](
     organization  := "com.github.piotrga",
-    version       := "2.0.0-SNAPSHOT",
+    version       := "2.0.1",
     description   := "Asynchronous Scala client for Amazon DynamoDB",
     scalaVersion  := "2.10.1",
     //crossScalaVersions := Seq("2.10.1", "2.11.4"),
@@ -30,17 +32,10 @@ object BuildSettings {
   )
 
   // Publish settings
-  // TODO: update with ivy credentials etc when we start using Nexus
   lazy val publishSettings = Seq[Setting[_]](
-    // Enables publishing to maven repo
     publishMavenStyle := true,
-
-    publishTo <<= version { version =>
-      val basePath = "target/repo/%s".format {
-        if (version.trim.endsWith("SNAPSHOT")) "snapshots/" else "releases/"
-      }
-      Some(Resolver.file("Local Maven repository", file(basePath)) transactional())
-    }
+    licenses  += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html")),
+    bintray.Keys.repository in bintray.Keys.bintray := "sbt-plugins"
   )
 
   lazy val buildSettings = basicSettings ++ publishSettings
