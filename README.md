@@ -150,14 +150,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-[travis-image]: https://travis-ci.org/piotrga/async-dynamo.png?branch=master
-[travis]: https://travis-ci.org/piotrga/async-dynamo
+[travis-image]: https://travis-ci.org/zzztimbo/async-dynamo.png?branch=master
+[travis]: https://travis-ci.org/zzztimbo/async-dynamo
 
 [release-image]: http://img.shields.io/badge/release-2.0.0-blue.svg?style=flat
-[releases]: https://github.com/piotrga/async-dynamo/releases
+[releases]: https://github.com/zzztimbo/async-dynamo/releases
 
 [license-image]: http://img.shields.io/badge/license-Apache--2-blue.svg?style=flat
 [license]: http://www.apache.org/licenses/LICENSE-2.0
 
 [dynamodb]: http://aws.amazon.com/dynamodb/
-[user_guide]: https://github.com/piotrga/async-dynamo/wiki/User-Guide
+[user_guide]: https://github.com/zzztimbo/async-dynamo/wiki/User-Guide
