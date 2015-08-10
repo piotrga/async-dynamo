@@ -302,7 +302,7 @@ case class QueryIndex[T](indexName: String, conditions: Seq[ColumnCondition], li
   }
 }
 
-case class Query[T](id: String, operator: Option[String], attributes: Seq[Any], limit : Int, exclusiveStartKey: Option[Map[String,AttributeValue]], consistentRead :Boolean)(implicit dyn:DynamoObject[T]) extends DbOperation[(Seq[T], Option[Map[String,AttributeValue]])]{
+case class Query[T](id: String, operator: Option[String], attributes: Seq[Any], limit : Int, exclusiveStartKey: Option[Map[String,AttributeValue]], consistentRead: Boolean, scanIndexForward: Boolean)(implicit dyn:DynamoObject[T]) extends DbOperation[(Seq[T], Option[Map[String,AttributeValue]])]{
 
   def execute(db: AmazonDynamoDB, tablePrefix:String) : (Seq[T], Option[Map[String,AttributeValue]]) = {
 
@@ -326,6 +326,7 @@ case class Query[T](id: String, operator: Option[String], attributes: Seq[Any], 
       .withKeyConditions(keyConditions.asJava)
       .withConsistentRead(consistentRead)
       .withLimit(limit)
+      .withScanIndexForward(scanIndexForward)
       .withReturnConsumedCapacity("TOTAL")
 
     //query.setIndexName()
@@ -365,6 +366,6 @@ case class Query[T](id: String, operator: Option[String], attributes: Seq[Any], 
 }
 
 object Query{
-  def apply[T](id: String, operator: String = null, attributes: Seq[Any] = Nil, limit : Int = Int.MaxValue, exclusiveStartKey: Option[Map[String,AttributeValue]] = None, consistentRead :Boolean = true)(implicit dyn:DynamoObject[T]) :Query[T]=
-    Query(id, Option(operator), attributes, limit, exclusiveStartKey, consistentRead)
+  def apply[T](id: String, operator: String = null, attributes: Seq[Any] = Nil, limit : Int = Int.MaxValue, exclusiveStartKey: Option[Map[String,AttributeValue]] = None, consistentRead: Boolean = true, scanIndexForward: Boolean = false)(implicit dyn:DynamoObject[T]) :Query[T]=
+    Query(id, Option(operator), attributes, limit, exclusiveStartKey, consistentRead, scanIndexForward)
 }

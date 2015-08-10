@@ -15,6 +15,8 @@
  */
 package com.github.piotrga.asyncdynamo
 
+import java.nio.ByteBuffer
+
 // Scala
 import reflect.ClassTag
 import language.implicitConversions
@@ -57,6 +59,7 @@ trait DynamoObject[T]{
 
   protected implicit def toS(value : String) = new AttributeValue().withS(value)
   protected def toN[A: Numeric](number: A) =  new AttributeValue().withN(number.toString)
+  protected def toB(byteBuffer: ByteBuffer) = new AttributeValue().withB(byteBuffer)
 
   protected def hashKey: DynamoObject.KeyDefinition
   protected def rangeKey: Option[DynamoObject.KeyDefinition] = None
