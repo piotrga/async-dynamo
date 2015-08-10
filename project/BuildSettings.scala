@@ -32,7 +32,7 @@ object BuildSettings {
   // Publish settings
   lazy val publishSettings = Seq[Setting[_]](
     publishMavenStyle := true,
-    licenses  += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html")),
+    licenses  += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html"))
   )
 
   lazy val buildSettings = basicSettings ++ publishSettings
