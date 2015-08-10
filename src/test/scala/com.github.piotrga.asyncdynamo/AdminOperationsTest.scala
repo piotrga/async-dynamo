@@ -34,8 +34,6 @@ class AdminOperationsTest extends FreeSpec with MustMatchers with DynamoSupport{
   case class AdminTest(id:String, value: String)
   implicit val at1DO = DynamoObject.of2(AdminTest)
 
-
-
   @tailrec
   final def eventually(times:Int, millis:Long)(cond: => Boolean){
     if(! cond ) {
@@ -47,7 +45,7 @@ class AdminOperationsTest extends FreeSpec with MustMatchers with DynamoSupport{
 
   val eventually : ( => Boolean) => Unit = eventually(120, 1000)
 
-  "Combination of create/delete table operations" in {
+  "Combination of create/delete table operations" ignore {
     try DeleteTable[AdminTest] catch {case _: Throwable => ()} //ignore if it doesn't exist
     eventually(!TableExists[AdminTest]())
 
