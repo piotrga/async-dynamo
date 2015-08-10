@@ -13,10 +13,8 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
+import sbt.Keys._
 import sbt._
-import Keys._
-import bintray.AttrMap
-import bintray._
 
 object BuildSettings {
 
@@ -35,7 +33,6 @@ object BuildSettings {
   lazy val publishSettings = Seq[Setting[_]](
     publishMavenStyle := true,
     licenses  += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html")),
-    bintray.Keys.repository in bintray.Keys.bintray := "sbt-plugins"
   )
 
   lazy val buildSettings = basicSettings ++ publishSettings
