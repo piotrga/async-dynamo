@@ -153,11 +153,14 @@ limitations under the License.
 [travis-image]: https://travis-ci.org/zzztimbo/async-dynamo.png?branch=master
 [travis]: https://travis-ci.org/zzztimbo/async-dynamo
 
-[release-image]: http://img.shields.io/badge/release-2.0.0-blue.svg?style=flat
-[releases]: https://github.com/zzztimbo/async-dynamo/releases
+[release-image]: https://api.bintray.com/packages/zzztimbo/maven/async-dynamo/images/download.svg
+[releases]: https://bintray.com/zzztimbo/maven/async-dynamo/_latestVersion
 
 [license-image]: http://img.shields.io/badge/license-Apache--2-blue.svg?style=flat
 [license]: http://www.apache.org/licenses/LICENSE-2.0
 
 [dynamodb]: http://aws.amazon.com/dynamodb/
 [user_guide]: https://github.com/zzztimbo/async-dynamo/wiki/User-Guide
+
+[ ![Download](https://api.bintray.com/packages/zzztimbo/maven/async-dynamo/images/download.svg) ](https://bintray.com/zzztimbo/maven/async-dynamo/_latestVersion)
+
