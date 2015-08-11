@@ -1,7 +1,7 @@
 # async-dynamo
 
 [ ![Build Status] [travis-image] ] [travis]
-[ ![Release] [release-image] ] [releases]
+[ ![Download] [download-image] ] [download]
 [ ![License] [license-image] ] [license]
 
 async-dynamo is an asynchronous Scala client for [Amazon DynamoDB] [dynamodb]. It is based on the Akka actor framework and provides an asynchronous API.
@@ -15,9 +15,9 @@ For detailed information please read [User Guide][user_guide].
 Add this to your `built.sbt` file:
 
 ```scala
-resolvers += "Snowplow Repo" at "http://maven.snplow.com/releases/"
+resolvers += Resolver.bintrayRepo("zzztimbo", "maven")
 
-libraryDependencies += "com.github.piotrga" %% "async-dynamo" % "2.0.0"
+libraryDependencies += "com.github.piotrga" %% "async-dynamo" % "2.0.1.12"
 ```
 
 ### Example
@@ -153,8 +153,8 @@ limitations under the License.
 [travis-image]: https://travis-ci.org/zzztimbo/async-dynamo.png?branch=master
 [travis]: https://travis-ci.org/zzztimbo/async-dynamo
 
-[release-image]: https://api.bintray.com/packages/zzztimbo/maven/async-dynamo/images/download.svg
-[releases]: https://bintray.com/zzztimbo/maven/async-dynamo/_latestVersion
+[download-image]: https://api.bintray.com/packages/zzztimbo/maven/async-dynamo/images/download.svg
+[download]: https://bintray.com/zzztimbo/maven/async-dynamo/_latestVersion
 
 [license-image]: http://img.shields.io/badge/license-Apache--2-blue.svg?style=flat
 [license]: http://www.apache.org/licenses/LICENSE-2.0
@@ -162,5 +162,4 @@ limitations under the License.
 [dynamodb]: http://aws.amazon.com/dynamodb/
 [user_guide]: https://github.com/zzztimbo/async-dynamo/wiki/User-Guide
 
-[ ![Download](https://api.bintray.com/packages/zzztimbo/maven/async-dynamo/images/download.svg) ](https://bintray.com/zzztimbo/maven/async-dynamo/_latestVersion)
 
