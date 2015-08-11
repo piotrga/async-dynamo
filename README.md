@@ -15,7 +15,7 @@ For detailed information please read [User Guide][user_guide].
 Add this to your `built.sbt` file:
 
 ```scala
-resolvers += Resolver.bintrayRepo("zzztimbo", "maven")
+resolvers += Resolver.jcenterRepo
 
 libraryDependencies += "com.github.piotrga" %% "async-dynamo" % "2.0.1.12"
 ```
