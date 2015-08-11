@@ -1,10 +1,13 @@
 language: scala
+
 scala:
-- 2.10.1
+- 2.10.4
+
 jdk:
 - oraclejdk7
 - openjdk6
 - openjdk7
+
 env:
   global:
   - secure: NO/zOySkMwps94gWvFEdzO9MLPePUHaa4W0xjWbjmz3WNZrOjka0FyxYxIOf/9jQnoL/1KlmbSxN9c1eWfFH0fh0stqD4AtGBcdG0t1CwkbCvlmO8gvWpqYYAsIMAfTewl3s6JdwNwrW9r9jFhtTqIbHSiVMirLm0283MZfB0AvkXWQBzFhLM1FmqbvNDGnJI4aec5HffGYF/d6DBPEyBUYPM3T0vSGoECC0DgKeqi4IWHNOAqSsuXy/FfK2H8KJh0sG2nm/jk2JIKsX5Lf4PaX/gVNCexqBx9M+VG/hKTe/vE8du7GjGWopXBMiHa4Z9sDcPVlU+RVynAgAoG2Z7ezdnD/wsUDCMLgirhkm9z7pCUR4PcQdaamxPgnQbJIgaxXGTthwGbAUVSjkcTZS5C5FIXE2LtOK+czcRDfuW/KrIshtj6gmxUJAGcMLQ4aWRcFz3Kt1OnPzXh2TTApIQrk+Boqbo2H4p+El+qiKPD6nAHXVCXx6W+U0LXPZzI9E0evJjlSVLlRykL0+s5/weSX2OWhFY4qJg1iIQdhXh4UzuJxepfI3hwh8jOhclPeQwhcPIr/zaPkXzP8eli4zSiJeeP65SBThfCBEWe0wyKjR28NPKMz94JdV03BVLxBod2nlWQ7gZbcccdBwPe1mJXA1gLGck1Wmemd2WXBfAh8=

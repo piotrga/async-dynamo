@@ -61,13 +61,13 @@ case class Update[T ](id:String, o : T, range: Option[String] = None)(implicit d
 
     val keyAttribs = range
       .map( rangeValue => Map(
-          dyn.hashSchema.getAttributeName -> new AttributeValue(id),
-          dyn.rangeSchema.get.getAttributeName -> new AttributeValue(rangeValue)))
+        dyn.hashSchema.getAttributeName -> new AttributeValue(id),
+        dyn.rangeSchema.get.getAttributeName -> new AttributeValue(rangeValue)))
       .getOrElse( Map(dyn.hashSchema.getAttributeName -> new AttributeValue(id)))
 
     val attribsMinusHashAndRangeKey = dyn.toDynamo(o).filter( attribPair => {
       attribPair._1 != dyn.hashSchema.getAttributeName &&
-      (if (dyn.rangeSchema.isDefined) attribPair._1 != dyn.rangeSchema.get.getAttributeName else true)
+        (if (dyn.rangeSchema.isDefined) attribPair._1 != dyn.rangeSchema.get.getAttributeName else true)
     })
     val convertToAttribUpdates: Map[String,AttributeValueUpdate] = attribsMinusHashAndRangeKey.map( attribPair => (attribPair._1, new AttributeValueUpdate(attribPair._2, AttributeAction.PUT) ))
 
@@ -83,8 +83,8 @@ case class Read[T](id:String, range: Option[String] = None, consistentRead : Boo
 
     val keyAttribs = range
       .map( rangeValue => Map(
-          dyn.hashSchema.getAttributeName -> new AttributeValue(id),
-          dyn.rangeSchema.get.getAttributeName -> new AttributeValue(rangeValue)))
+        dyn.hashSchema.getAttributeName -> new AttributeValue(id),
+        dyn.rangeSchema.get.getAttributeName -> new AttributeValue(rangeValue)))
       .getOrElse( Map(dyn.hashSchema.getAttributeName -> new AttributeValue(id)))
 
     val read = new GetItemRequest( dyn.table(tablePrefix), keyAttribs )
@@ -302,24 +302,27 @@ case class QueryIndex[T](indexName: String, conditions: Seq[ColumnCondition], li
   }
 }
 
-case class Query[T](id: String, operator: Option[String], attributes: Seq[Any], limit : Int, exclusiveStartKey: Option[Map[String,AttributeValue]], consistentRead: Boolean, scanIndexForward: Boolean)(implicit dyn:DynamoObject[T]) extends DbOperation[(Seq[T], Option[Map[String,AttributeValue]])]{
+case class Query[T](id: String, operator: Option[String], attributes: Seq[Any], limit: Int,
+                    exclusiveStartKey: Option[Map[String, AttributeValue]],
+                    consistentRead: Boolean, scanIndexForward: Boolean)(implicit dyn: DynamoObject[T])
+  extends DbOperation[(Seq[T], Option[Map[String, AttributeValue]])] {
 
-  def execute(db: AmazonDynamoDB, tablePrefix:String) : (Seq[T], Option[Map[String,AttributeValue]]) = {
+  def execute(db: AmazonDynamoDB, tablePrefix: String): (Seq[T], Option[Map[String, AttributeValue]]) = {
 
     val keyConditions = operator
-    .map( operator => Map(
-      dyn.hashSchema.getAttributeName -> new Condition()
-        .withComparisonOperator("EQ")
-        .withAttributeValueList(dyn.asHashAttribute(id)),
-      dyn.rangeSchema.get.getAttributeName -> new Condition()
-        .withComparisonOperator( operator )
-        .withAttributeValueList( attributes.map(dyn.asRangeAttribute).asJava ))
-    )
-    .getOrElse( Map(
-      dyn.hashSchema.getAttributeName -> new Condition()
-        .withComparisonOperator("EQ")
-        .withAttributeValueList(dyn.asHashAttribute(id)))
-    )
+      .map(operator => Map(
+        dyn.hashSchema.getAttributeName -> new Condition()
+          .withComparisonOperator("EQ")
+          .withAttributeValueList(dyn.asHashAttribute(id)),
+        dyn.rangeSchema.get.getAttributeName -> new Condition()
+          .withComparisonOperator( operator )
+          .withAttributeValueList( attributes.map(dyn.asRangeAttribute).asJava ))
+      )
+      .getOrElse(Map(
+        dyn.hashSchema.getAttributeName -> new Condition()
+          .withComparisonOperator("EQ")
+          .withAttributeValueList(dyn.asHashAttribute(id)))
+      )
 
     val query = new dynamodbv2.model.QueryRequest()
       .withTableName(dyn.table(tablePrefix))
@@ -338,34 +341,42 @@ case class Query[T](id: String, operator: Option[String], attributes: Seq[Any], 
       item => dyn.fromDynamo(item.asScala.toMap)
     }
 
-    val lastEvaluatedKey = if (result.getLastEvaluatedKey != null)
+    val lastEvaluatedKey = if (result.getLastEvaluatedKey != null) {
       Option(result.getLastEvaluatedKey.toMap)
-    else
+    } else {
       None
+    }
 
     (items, lastEvaluatedKey)
   }
 
-  def blockingStream(implicit dynamo: ActorRef, pageTimeout: Timeout): Stream[T] = //TODO: use iteratees or some other magic to get rid of this blocking behaviour (Peter G. 31/10/2012)
-    functional.unfold[Query[T], Seq[T]](this){
+  //TODO: use iteratees or some other magic to get rid of this blocking behaviour (Peter G. 31/10/2012)
+  def blockingStream(implicit dynamo: ActorRef, pageTimeout: Timeout): Stream[T] =
+    functional.unfold[Query[T], Seq[T]](this) {
       query =>
         val (resultChunk, lastKey) = query.blockingExecute
-        lastKey match{
+        lastKey match {
           case None => (None, resultChunk)
           case key@Some(_) => (Some(query.copy(exclusiveStartKey = key)), resultChunk)
         }
     }.flatten
 
 
-  def run[A](iter:Iteratee[T,A])(implicit dynamo: ActorRef, pageTimeout: Timeout, execCtx :ExecutionContext) : Future[Iteratee[T,A]] = {
+  def run[A](iter: Iteratee[T, A])(implicit dynamo: ActorRef, pageTimeout: Timeout,
+                                   execCtx: ExecutionContext): Future[Iteratee[T, A]] = {
 
-    def nextBatch(token : Option[Map[String,AttributeValue]]) = this.copy(exclusiveStartKey = token).executeOn(dynamo)(pageTimeout)
+    def nextBatch(token: Option[Map[String, AttributeValue]]) = this.copy(exclusiveStartKey = token)
+      .executeOn(dynamo)(pageTimeout)
 
-    pageAsynchronously2(nextBatch, iter)(new {def apply[X]()= Promise[X]()}, execCtx)
+    pageAsynchronously2(nextBatch, iter)(new {def apply[X]() = Promise[X]()
+    }, execCtx)
   }
 }
 
-object Query{
-  def apply[T](id: String, operator: String = null, attributes: Seq[Any] = Nil, limit : Int = Int.MaxValue, exclusiveStartKey: Option[Map[String,AttributeValue]] = None, consistentRead: Boolean = true, scanIndexForward: Boolean = false)(implicit dyn:DynamoObject[T]) :Query[T]=
-    Query(id, Option(operator), attributes, limit, exclusiveStartKey, consistentRead, scanIndexForward)
+
+object Query {
+  def apply[T](id: String, operator: String = null, attributes: Seq[Any] = Nil, limit: Int = Int.MaxValue,
+               exclusiveStartKey: Option[Map[String, AttributeValue]] = None, consistentRead: Boolean = true,
+               scanForwardIndex: Boolean = false)(implicit dyn: DynamoObject[T]): Query[T] =
+    Query(id, Option(operator), attributes, limit, exclusiveStartKey, consistentRead, scanForwardIndex)
 }
