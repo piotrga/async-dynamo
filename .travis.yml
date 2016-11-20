@@ -33,4 +33,6 @@ after_success:
       test "${TRAVIS_BRANCH}" = 'master' &&
       sh "$TRAVIS_BUILD_DIR/.travis.credentials.sh" &&
       git checkout master &&
+      git config --global user.email "zzztimbo@gmail.com" &&
+      git config --global user.name "zzztimbo" &&
       sbt 'release with-defaults'
