@@ -28,7 +28,6 @@ object BuildSettings {
     organization  := "com.github.piotrga",
     description   := "Asynchronous Scala client for Amazon DynamoDB",
     scalaVersion  := "2.11.8",
-    crossScalaVersions := Seq("2.11.8", "2.10.6"),
     scalacOptions := Seq("-deprecation", "-feature", "-encoding", "utf8"),
     resolvers     ++= Dependencies.resolutionRepos,
     releaseCommitMessage := s"Setting version to ${(version in ThisBuild).value} [skip ci]"
