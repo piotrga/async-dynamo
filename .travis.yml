@@ -1,22 +1,35 @@
 language: scala
 
 scala:
-- 2.10.4
+  - 2.11.8
 
 jdk:
-- oraclejdk7
-- openjdk6
-- openjdk7
+  - oraclejdk8
+
+branches:
+  only:
+    - master
+
+cache:
+  directories:
+    - $HOME/.ivy2/cache
+    - $HOME/.sbt/boot
+
+before_cache:
+  - find $HOME/.ivy2 -name "ivydata-*.properties" -delete
+  - find $HOME/.sbt -name "*.lock" -delete
 
 env:
   global:
-  - secure: NO/zOySkMwps94gWvFEdzO9MLPePUHaa4W0xjWbjmz3WNZrOjka0FyxYxIOf/9jQnoL/1KlmbSxN9c1eWfFH0fh0stqD4AtGBcdG0t1CwkbCvlmO8gvWpqYYAsIMAfTewl3s6JdwNwrW9r9jFhtTqIbHSiVMirLm0283MZfB0AvkXWQBzFhLM1FmqbvNDGnJI4aec5HffGYF/d6DBPEyBUYPM3T0vSGoECC0DgKeqi4IWHNOAqSsuXy/FfK2H8KJh0sG2nm/jk2JIKsX5Lf4PaX/gVNCexqBx9M+VG/hKTe/vE8du7GjGWopXBMiHa4Z9sDcPVlU+RVynAgAoG2Z7ezdnD/wsUDCMLgirhkm9z7pCUR4PcQdaamxPgnQbJIgaxXGTthwGbAUVSjkcTZS5C5FIXE2LtOK+czcRDfuW/KrIshtj6gmxUJAGcMLQ4aWRcFz3Kt1OnPzXh2TTApIQrk+Boqbo2H4p+El+qiKPD6nAHXVCXx6W+U0LXPZzI9E0evJjlSVLlRykL0+s5/weSX2OWhFY4qJg1iIQdhXh4UzuJxepfI3hwh8jOhclPeQwhcPIr/zaPkXzP8eli4zSiJeeP65SBThfCBEWe0wyKjR28NPKMz94JdV03BVLxBod2nlWQ7gZbcccdBwPe1mJXA1gLGck1Wmemd2WXBfAh8=
-  - secure: BD8h6gwBZOrpu8K0EjxPjnyPCbX0QYJisMrjGlz3+3mHpveOmZeaZ15Wn4EhRmEa7jAeNPC9NYARjFYXhcT2KNAjCVw24FCmn30kfHrlxjO3q6mzl9NvkL+PiBDOv0gtmHoXDpFa4RPPDOF4rtr4IhodIIgH7VSD9RrNz9Em2rosvKQYSvt5mCGxHnd+WjO64NAQmlwOv82vHHdJO6XYnXKrevvSn/ZG9kOgKINBVCDgHYQnGPWZZH5GeHvPkjI6fV2WSCybpYlX6rH2LbiCZv3dr88Hm/TA0ZK4QK5J3tn3mJqhGcujv0DrectELwnbxwhhkSf9TfU/7OPPrcW5lKU57SnY86WbkvXRp27VXf0Jrzet9viDXxQmLiUNfggiE7zZ0tf1PDJKUV9Bjs7AgQNF/3gf8eTKPnP8bduP0cjGz+mz/jqlQ7KCy4R1Y7AbnDs/0KtA3DHrshxDj3KoNy+m5uBps2HWUhcGhHOQplGIzHGgJcuBF/CiQ+5TZqzsQlZIto6zB4kLM0uNbZG3DUegNJnwhmx9ky4rYYmyy3TTqGhYrZf3JC0hKbYab/Jb00CXGxRkFBPzQmlrdL2fazGCwH5rAMgxQ/iUVROtrwmCpbZYw8zbe3vVlBub0Kh02Uew4WhIXWt2aIpwK9PGA6wnFDXhpYQmDbCcNpFQ194=
-  - secure: hA5sWRPwN4/0ZdFl+TsbEdF4r2ilT+uUYOXooia25EFjDzwjaIvkpAvm2aZyiuxd4SdmkF/QQX5cOizBQDCR6Y3TTjXtPDipDBsLOtV0C36fzZOQYOIzhYvgM2/fmyXdyhIJEDh1UvlDQijY9kkLHKT3qYXPwaDIJCm0HG2jYdm+NhJXImgljMfRsa9JHh9J0+mUKLmdhl0GH6jqdSvvnQV3L8FzHLDgLC+NvdTK8lUYb0CpsUAt+CCAk60X6DqmWWVM58mdvove+ErwUGH/oMShQFnYsX/g6zX9n/Mqrph6kPNWmuo13rDt2YX1LW2ALfnoLbklXIts7rbLtbkm81myjlnTCTPMOLzjQQQLC1e41zouYB7bscwOrKzNHX+1UnLbBHRvDd/yFIogMWto2Sl/NlJpaHItr3LUnuJENCvwnwoLvluhC7uL1rzDrSvFUNAvnvZuZcvlwHFCWGC+sdJc/NwAbRUiEmjNC9gaDQyqRRqBVdWWjedD5YyfUd4D2KFbR221Y3M/UHdEN7sktcpOSDlyyAT2e1m+3e0Qc0C5CClx2LXo2MSRhLga7Ck2EefKftqTD7qFi+YPdmcqiBedLWCYrUObk9LyUDdHCiC47gg3opDhkJcLuob7mzZPF84CDC8E2Dt5gezPJbFm2xPHsR6dTctZGODzP91e7yI=
+    - secure: NO/zOySkMwps94gWvFEdzO9MLPePUHaa4W0xjWbjmz3WNZrOjka0FyxYxIOf/9jQnoL/1KlmbSxN9c1eWfFH0fh0stqD4AtGBcdG0t1CwkbCvlmO8gvWpqYYAsIMAfTewl3s6JdwNwrW9r9jFhtTqIbHSiVMirLm0283MZfB0AvkXWQBzFhLM1FmqbvNDGnJI4aec5HffGYF/d6DBPEyBUYPM3T0vSGoECC0DgKeqi4IWHNOAqSsuXy/FfK2H8KJh0sG2nm/jk2JIKsX5Lf4PaX/gVNCexqBx9M+VG/hKTe/vE8du7GjGWopXBMiHa4Z9sDcPVlU+RVynAgAoG2Z7ezdnD/wsUDCMLgirhkm9z7pCUR4PcQdaamxPgnQbJIgaxXGTthwGbAUVSjkcTZS5C5FIXE2LtOK+czcRDfuW/KrIshtj6gmxUJAGcMLQ4aWRcFz3Kt1OnPzXh2TTApIQrk+Boqbo2H4p+El+qiKPD6nAHXVCXx6W+U0LXPZzI9E0evJjlSVLlRykL0+s5/weSX2OWhFY4qJg1iIQdhXh4UzuJxepfI3hwh8jOhclPeQwhcPIr/zaPkXzP8eli4zSiJeeP65SBThfCBEWe0wyKjR28NPKMz94JdV03BVLxBod2nlWQ7gZbcccdBwPe1mJXA1gLGck1Wmemd2WXBfAh8=
+    - secure: BD8h6gwBZOrpu8K0EjxPjnyPCbX0QYJisMrjGlz3+3mHpveOmZeaZ15Wn4EhRmEa7jAeNPC9NYARjFYXhcT2KNAjCVw24FCmn30kfHrlxjO3q6mzl9NvkL+PiBDOv0gtmHoXDpFa4RPPDOF4rtr4IhodIIgH7VSD9RrNz9Em2rosvKQYSvt5mCGxHnd+WjO64NAQmlwOv82vHHdJO6XYnXKrevvSn/ZG9kOgKINBVCDgHYQnGPWZZH5GeHvPkjI6fV2WSCybpYlX6rH2LbiCZv3dr88Hm/TA0ZK4QK5J3tn3mJqhGcujv0DrectELwnbxwhhkSf9TfU/7OPPrcW5lKU57SnY86WbkvXRp27VXf0Jrzet9viDXxQmLiUNfggiE7zZ0tf1PDJKUV9Bjs7AgQNF/3gf8eTKPnP8bduP0cjGz+mz/jqlQ7KCy4R1Y7AbnDs/0KtA3DHrshxDj3KoNy+m5uBps2HWUhcGhHOQplGIzHGgJcuBF/CiQ+5TZqzsQlZIto6zB4kLM0uNbZG3DUegNJnwhmx9ky4rYYmyy3TTqGhYrZf3JC0hKbYab/Jb00CXGxRkFBPzQmlrdL2fazGCwH5rAMgxQ/iUVROtrwmCpbZYw8zbe3vVlBub0Kh02Uew4WhIXWt2aIpwK9PGA6wnFDXhpYQmDbCcNpFQ194=
+    - secure: hA5sWRPwN4/0ZdFl+TsbEdF4r2ilT+uUYOXooia25EFjDzwjaIvkpAvm2aZyiuxd4SdmkF/QQX5cOizBQDCR6Y3TTjXtPDipDBsLOtV0C36fzZOQYOIzhYvgM2/fmyXdyhIJEDh1UvlDQijY9kkLHKT3qYXPwaDIJCm0HG2jYdm+NhJXImgljMfRsa9JHh9J0+mUKLmdhl0GH6jqdSvvnQV3L8FzHLDgLC+NvdTK8lUYb0CpsUAt+CCAk60X6DqmWWVM58mdvove+ErwUGH/oMShQFnYsX/g6zX9n/Mqrph6kPNWmuo13rDt2YX1LW2ALfnoLbklXIts7rbLtbkm81myjlnTCTPMOLzjQQQLC1e41zouYB7bscwOrKzNHX+1UnLbBHRvDd/yFIogMWto2Sl/NlJpaHItr3LUnuJENCvwnwoLvluhC7uL1rzDrSvFUNAvnvZuZcvlwHFCWGC+sdJc/NwAbRUiEmjNC9gaDQyqRRqBVdWWjedD5YyfUd4D2KFbR221Y3M/UHdEN7sktcpOSDlyyAT2e1m+3e0Qc0C5CClx2LXo2MSRhLga7Ck2EefKftqTD7qFi+YPdmcqiBedLWCYrUObk9LyUDdHCiC47gg3opDhkJcLuob7mzZPF84CDC8E2Dt5gezPJbFm2xPHsR6dTctZGODzP91e7yI=
 
 after_success:
   - >
+      echo "TRAVIS_PULL_REQUEST: ${TRAVIS_PULL_REQUEST}" &&
+      echo "TRAVIS_BRANCH: ${TRAVIS_BRANCH}" &&
       test "${TRAVIS_PULL_REQUEST}" = 'false' &&
-      test "${TRAVIS_JDK_VERSION}" = 'oraclejdk7' &&
+      test "${TRAVIS_BRANCH}" = 'master' &&
       sh "$TRAVIS_BUILD_DIR/.travis.credentials.sh" &&
-      sbt 'set version := version.value + "." + System.getenv("TRAVIS_BUILD_NUMBER")' publish
+      sbt 'release with-defaults'

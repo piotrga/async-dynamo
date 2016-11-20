@@ -28,7 +28,7 @@ import language.postfixOps
 import com.amazonaws.services.dynamodbv2.model.{ConditionalCheckFailedException, ComparisonOperator, ScalarAttributeType}
 
 // ScalaTest
-import org.scalatest.matchers.MustMatchers
+import org.scalatest.MustMatchers
 import org.scalatest.FreeSpec
 
 // Akka

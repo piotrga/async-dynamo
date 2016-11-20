@@ -19,8 +19,8 @@ package com.github.piotrga.asyncdynamo
 import scala.collection.JavaConverters._
 
 // Java
-import java.util.{Map => JMap, List => JList}
-import java.lang.{Boolean => JBoolean}
+import java.util.{ Map => JMap, List => JList }
+import java.lang.{ Boolean => JBoolean }
 
 // AWS SDK
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
@@ -31,9 +31,9 @@ import com.amazonaws.regions.Region
 // Akka
 import akka.event.EventStream
 
-protected class TracingAmazonDynamoDB(delegate  : AmazonDynamoDB, eventStream : EventStream) extends AmazonDynamoDB {
+protected class TracingAmazonDynamoDB(delegate: AmazonDynamoDB, eventStream: EventStream) extends AmazonDynamoDB {
 
-  def setEndpoint(endpoint: String) {delegate.setEndpoint(endpoint)}
+  def setEndpoint(endpoint: String) { delegate.setEndpoint(endpoint) }
   def setRegion(region: Region) { delegate.setRegion(region) }
   def getCachedResponseMetadata(request: AmazonWebServiceRequest) = delegate.getCachedResponseMetadata(request)
 
@@ -52,24 +52,24 @@ protected class TracingAmazonDynamoDB(delegate  : AmazonDynamoDB, eventStream : 
   def deleteTable(deleteTableRequest: DeleteTableRequest) = delegate.deleteTable(deleteTableRequest)
   def deleteTable(tableName: String) = delegate.deleteTable(tableName)
 
-  def shutdown() {delegate.shutdown()}
+  def shutdown() { delegate.shutdown() }
 
   import Operation._
 
   def deleteItem(deleteItemRequest: DeleteItemRequest) = {
-    val (res, duration) = time (delegate.deleteItem(deleteItemRequest))
-    pub(DynamoRequestExecuted(Operation(deleteItemRequest.getTableName, Write,"DeleteItem"), writeUnits = Option(Double.unbox(res.getConsumedCapacity.getCapacityUnits)), duration = duration))
+    val (res, duration) = time(delegate.deleteItem(deleteItemRequest))
+    pub(DynamoRequestExecuted(Operation(deleteItemRequest.getTableName, Write, "DeleteItem"), writeUnits = Option(Double.unbox(res.getConsumedCapacity.getCapacityUnits)), duration = duration))
     res
   }
 
-  def deleteItem(tableName: String, key: JMap[String, AttributeValue], returnValues: String): DeleteItemResult =  {
-    val (res, duration) = time (delegate.deleteItem(tableName, key, returnValues))
-    pub(DynamoRequestExecuted(Operation(tableName, Write,"DeleteItem"), writeUnits = Option(Double.unbox(res.getConsumedCapacity.getCapacityUnits)), duration = duration))
+  def deleteItem(tableName: String, key: JMap[String, AttributeValue], returnValues: String): DeleteItemResult = {
+    val (res, duration) = time(delegate.deleteItem(tableName, key, returnValues))
+    pub(DynamoRequestExecuted(Operation(tableName, Write, "DeleteItem"), writeUnits = Option(Double.unbox(res.getConsumedCapacity.getCapacityUnits)), duration = duration))
     res
   }
 
   def deleteItem(tableName: String, key: JMap[String, AttributeValue]): DeleteItemResult = {
-    val (res, duration) = time (delegate.deleteItem(tableName, key))
+    val (res, duration) = time(delegate.deleteItem(tableName, key))
     pub(DynamoRequestExecuted(Operation(tableName, Write, "DeleteItem"), writeUnits = Option(Double.unbox(res.getConsumedCapacity.getCapacityUnits)), duration = duration))
     res
   }
@@ -82,7 +82,7 @@ protected class TracingAmazonDynamoDB(delegate  : AmazonDynamoDB, eventStream : 
 
   def getItem(tableName: String, key: JMap[String, AttributeValue], consistentRead: JBoolean): GetItemResult = {
     val (res, duration) = time(delegate.getItem(tableName, key, consistentRead))
-    pub(DynamoRequestExecuted(Operation(tableName, Read,"GetItem"), readUnits = Option(Double.unbox(res.getConsumedCapacity.getCapacityUnits)), duration = duration))
+    pub(DynamoRequestExecuted(Operation(tableName, Read, "GetItem"), readUnits = Option(Double.unbox(res.getConsumedCapacity.getCapacityUnits)), duration = duration))
     res
   }
 
@@ -96,15 +96,15 @@ protected class TracingAmazonDynamoDB(delegate  : AmazonDynamoDB, eventStream : 
 
   def scan(tableName: String, attributesToGet: JList[String], scanFilter: JMap[String, Condition]): ScanResult = {
     val (res, duration) = time(delegate.scan(tableName, attributesToGet, scanFilter))
-    pub(DynamoRequestExecuted(Operation(tableName, Read,"Scan"), readUnits = Option(Double.unbox(res.getConsumedCapacity.getCapacityUnits)), duration = duration))
+    pub(DynamoRequestExecuted(Operation(tableName, Read, "Scan"), readUnits = Option(Double.unbox(res.getConsumedCapacity.getCapacityUnits)), duration = duration))
     res
   }
 
   import collection.JavaConversions._
 
-  def scan(tableName: String, scanFilter: JMap[String, Condition]): ScanResult = scan(tableName, List[String]() ,scanFilter)
+  def scan(tableName: String, scanFilter: JMap[String, Condition]): ScanResult = scan(tableName, List[String](), scanFilter)
 
-  def scan(tableName: String, attributesToGet: JList[String]): ScanResult = scan(tableName, attributesToGet, Map[String,Condition]())
+  def scan(tableName: String, attributesToGet: JList[String]): ScanResult = scan(tableName, attributesToGet, Map[String, Condition]())
 
   def updateItem(updateItemRequest: UpdateItemRequest) = {
     val (res, duration) = time(delegate.updateItem(updateItemRequest))
@@ -114,13 +114,13 @@ protected class TracingAmazonDynamoDB(delegate  : AmazonDynamoDB, eventStream : 
 
   def updateItem(tableName: String, key: JMap[String, AttributeValue], attributeUpdates: JMap[String, AttributeValueUpdate], returnValues: String): UpdateItemResult = {
     val (res, duration) = time(delegate.updateItem(tableName, key, attributeUpdates, returnValues))
-    pub(DynamoRequestExecuted(Operation(tableName, Write,"UpdateItem"), writeUnits = Option(Double.unbox(res.getConsumedCapacity.getCapacityUnits)), duration = duration))
+    pub(DynamoRequestExecuted(Operation(tableName, Write, "UpdateItem"), writeUnits = Option(Double.unbox(res.getConsumedCapacity.getCapacityUnits)), duration = duration))
     res
   }
 
   def updateItem(tableName: String, key: JMap[String, AttributeValue], attributeUpdates: JMap[String, AttributeValueUpdate]): UpdateItemResult = {
     val (res, duration) = time(delegate.updateItem(tableName, key, attributeUpdates))
-    pub(DynamoRequestExecuted(Operation(tableName, Write,"UpdateItem"), writeUnits = Option(Double.unbox(res.getConsumedCapacity.getCapacityUnits)), duration = duration))
+    pub(DynamoRequestExecuted(Operation(tableName, Write, "UpdateItem"), writeUnits = Option(Double.unbox(res.getConsumedCapacity.getCapacityUnits)), duration = duration))
     res
   }
 
@@ -132,7 +132,7 @@ protected class TracingAmazonDynamoDB(delegate  : AmazonDynamoDB, eventStream : 
 
   def putItem(putItemRequest: PutItemRequest) = {
     val (res, duration) = time(delegate.putItem(putItemRequest))
-    pub(DynamoRequestExecuted(Operation(putItemRequest.getTableName, Write,"PutItem"), writeUnits = Option(Double.unbox(res.getConsumedCapacity.getCapacityUnits)), duration = duration))
+    pub(DynamoRequestExecuted(Operation(putItemRequest.getTableName, Write, "PutItem"), writeUnits = Option(Double.unbox(res.getConsumedCapacity.getCapacityUnits)), duration = duration))
     res
   }
 
@@ -144,7 +144,7 @@ protected class TracingAmazonDynamoDB(delegate  : AmazonDynamoDB, eventStream : 
 
   def putItem(tableName: String, item: JMap[String, AttributeValue]): PutItemResult = {
     val (res, duration) = time(delegate.putItem(tableName, item))
-    pub(DynamoRequestExecuted(Operation(tableName, Write,"PutItem"), writeUnits = Option(Double.unbox(res.getConsumedCapacity.getCapacityUnits)), duration = duration))
+    pub(DynamoRequestExecuted(Operation(tableName, Write, "PutItem"), writeUnits = Option(Double.unbox(res.getConsumedCapacity.getCapacityUnits)), duration = duration))
     res
   }
 
@@ -154,7 +154,7 @@ protected class TracingAmazonDynamoDB(delegate  : AmazonDynamoDB, eventStream : 
     val (res, duration) = time(delegate.batchGetItem(batchGetItemRequest))
 
     res.getConsumedCapacity foreach {
-      case consumedCapacity => 
+      case consumedCapacity =>
         pub(DynamoRequestExecuted(Operation(consumedCapacity.getTableName(), Read, "BatchGetItem"), readUnits = Option(Double.unbox(consumedCapacity.getCapacityUnits)), duration = duration))
     }
     res
@@ -184,7 +184,7 @@ protected class TracingAmazonDynamoDB(delegate  : AmazonDynamoDB, eventStream : 
     val (res, duration) = time(delegate.batchWriteItem(batchWriteItemRequest))
 
     res.getConsumedCapacity foreach {
-      case consumedCapacity => 
+      case consumedCapacity =>
         pub(DynamoRequestExecuted(Operation(consumedCapacity.getTableName(), Write, "BatchWriteItem"), writeUnits = Option(Double.unbox(consumedCapacity.getCapacityUnits)), duration = duration))
     }
     res
@@ -200,7 +200,7 @@ protected class TracingAmazonDynamoDB(delegate  : AmazonDynamoDB, eventStream : 
     res
   }
 
-  private def pub(op:DynamoRequestExecuted) = eventStream.publish(op)
+  private def pub(op: DynamoRequestExecuted) = eventStream.publish(op)
 
   def time[T](f: => T): (T, Long) = {
     val start = System.currentTimeMillis()

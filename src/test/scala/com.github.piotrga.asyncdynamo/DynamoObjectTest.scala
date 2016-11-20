@@ -20,7 +20,7 @@ import concurrent.duration._
 import language.postfixOps
 
 // ScalaTest
-import org.scalatest.matchers.MustMatchers
+import org.scalatest.MustMatchers
 import org.scalatest.FreeSpec
 
 // This project
