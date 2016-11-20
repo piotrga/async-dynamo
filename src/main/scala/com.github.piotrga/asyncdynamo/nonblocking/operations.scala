@@ -238,7 +238,7 @@ case class Scan[T](conditions: Seq[ColumnCondition], exclusiveStartKey: Option[M
     (items, lastEvaluatedKey)
   }
 
-  def blockingStream(implicit dynamo: ActorRef, pageTimeout: Timeout): Stream[T] = //TODO: use iteratees or some other magic to get rid of this blocking behaviour (Peter G. 31/10/2012)
+  def blockingStream(implicit dynamo: ActorRef, pageTimeout: Timeout): scala.collection.immutable.Stream[T] = //TODO: use iteratees or some other magic to get rid of this blocking behaviour (Peter G. 31/10/2012)
     functional.unfold[Scan[T], Seq[T]](this) {
       query =>
         val (resultChunk, lastKey) = query.blockingExecute
@@ -284,7 +284,7 @@ case class QueryIndex[T](indexName: String, conditions: Seq[ColumnCondition], li
     (items, lastEvaluatedKey)
   }
 
-  def blockingStream(implicit dynamo: ActorRef, pageTimeout: Timeout): Stream[T] = //TODO: use iteratees or some other magic to get rid of this blocking behaviour (Peter G. 31/10/2012)
+  def blockingStream(implicit dynamo: ActorRef, pageTimeout: Timeout): scala.collection.immutable.Stream[T] = //TODO: use iteratees or some other magic to get rid of this blocking behaviour (Peter G. 31/10/2012)
     functional.unfold[QueryIndex[T], Seq[T]](this) {
       query =>
         val (resultChunk, lastKey) = query.blockingExecute
@@ -351,7 +351,7 @@ case class Query[T](id: String, operator: Option[String], attributes: Seq[Any], 
   }
 
   //TODO: use iteratees or some other magic to get rid of this blocking behaviour (Peter G. 31/10/2012)
-  def blockingStream(implicit dynamo: ActorRef, pageTimeout: Timeout): Stream[T] =
+  def blockingStream(implicit dynamo: ActorRef, pageTimeout: Timeout): scala.collection.immutable.Stream[T] =
     functional.unfold[Query[T], Seq[T]](this) {
       query =>
         val (resultChunk, lastKey) = query.blockingExecute

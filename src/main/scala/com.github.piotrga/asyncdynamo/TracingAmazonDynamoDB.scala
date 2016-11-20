@@ -51,6 +51,8 @@ protected class TracingAmazonDynamoDB(delegate: AmazonDynamoDB, eventStream: Eve
   def listTables(exclusiveStartTableName: String) = delegate.listTables(exclusiveStartTableName)
   def deleteTable(deleteTableRequest: DeleteTableRequest) = delegate.deleteTable(deleteTableRequest)
   def deleteTable(tableName: String) = delegate.deleteTable(tableName)
+  def describeLimits(describeLimitsRequest: DescribeLimitsRequest) = delegate.describeLimits(describeLimitsRequest)
+  def waiters() = delegate.waiters()
 
   def shutdown() { delegate.shutdown() }
 
