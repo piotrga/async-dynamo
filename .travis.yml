@@ -32,4 +32,5 @@ after_success:
       test "${TRAVIS_PULL_REQUEST}" = 'false' &&
       test "${TRAVIS_BRANCH}" = 'master' &&
       sh "$TRAVIS_BUILD_DIR/.travis.credentials.sh" &&
+      git checkout master &&
       sbt 'release with-defaults'
