@@ -21,7 +21,7 @@ object Dependencies {
 
   object V {
     // Java
-    val awsSdk      = "1.9.40"
+    val awsSdk      = "1.11.58"
     // Scala
     val akkaActor   = "2.4.12"
     // Test
