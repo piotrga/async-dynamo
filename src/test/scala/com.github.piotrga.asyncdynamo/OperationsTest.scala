@@ -19,44 +19,45 @@ package com.github.piotrga.asyncdynamo
 import java.util.UUID
 
 // Scala
-import concurrent.{Future, Await}
+import concurrent.{ Future, Await }
 import concurrent.ExecutionContext.Implicits.global
 import annotation.tailrec
 import language.postfixOps
 
 // AWS SDK
-import com.amazonaws.services.dynamodbv2.model.{ConditionalCheckFailedException, ComparisonOperator, ScalarAttributeType}
+import com.amazonaws.services.dynamodbv2.model.{ ConditionalCheckFailedException, ComparisonOperator, ScalarAttributeType }
 
 // ScalaTest
 import org.scalatest.MustMatchers
 import org.scalatest.FreeSpec
 
 // Akka
-import akka.actor.{Actor, Props, ActorSystem}
+import akka.actor.{ Actor, Props, ActorSystem }
 
 // This project
 import nonblocking._
 import functional.Done
-import blocking.{DeleteById, Read, Save}
-import nonblocking.{QueryIndex, ColumnCondition}
+import blocking.{ DeleteById, Read, Save }
+import nonblocking.{ QueryIndex, ColumnCondition }
 
 class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSupport {
   import DynamoTestDataObjects._
 
   implicit val sys = ActorSystem("test")
-  val listener = sys.actorOf(Props(new Actor{
-     def receive = {
+  val listener = sys.actorOf(Props(new Actor {
+    def receive = {
       case msg => println("EVENT_STREAM: " + msg)
     }
   }))
 
   import scala.concurrent.duration._
-  private def givenTestObjectsInDb(n: Int) : Seq[DynamoTestWithRangeObject] = {
+  private def givenTestObjectsInDb(n: Int): Seq[DynamoTestWithRangeObject] = {
     val id = UUID.randomUUID().toString
     Await.result(
       Future.sequence(
-        (1 to n) map (i => nonblocking.Save(DynamoTestWithRangeObject(id, i.toString , "value "+i)).executeOn(dynamo)(n * 5 seconds))
-      ), n * 5 seconds )
+        (1 to n) map (i => nonblocking.Save(DynamoTestWithRangeObject(id, i.toString, "value " + i)).executeOn(dynamo)(n * 5 seconds))
+      ), n * 5 seconds
+    )
   }
 
   def getRootCause(ex: Throwable): Throwable = {
@@ -94,8 +95,7 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     try {
       Save(objAltered, false) //should fail
       fail(new IllegalStateException("Should never get here, ConditionalCheckFailedException expected already!"))
-    }
-    catch {
+    } catch {
       case ex: Throwable => {
         getRootCause(ex) match {
           case c: ConditionalCheckFailedException => assert(true) //expected
@@ -112,7 +112,6 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     val saved3 = Read[DynamoTestObject](obj.id).get
     assert(saved3 === objAltered)
 
-
     val obj2 = DynamoTestWithRangeObject(id, "1", "value 1")
     Save(obj2, false) //should save ok
 
@@ -127,8 +126,7 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     try {
       Save(objAltered2, false) //should fail
       fail(new IllegalStateException("Should never get here, ConditionalCheckFailedException expected already!"))
-    }
-    catch {
+    } catch {
       case ex: Throwable => {
         getRootCause(ex) match {
           case c: ConditionalCheckFailedException => assert(true) //expected
@@ -142,7 +140,6 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     val savedWithRange3 = Read[DynamoTestWithRangeObject](obj2.id, Some("1")).get
     assert(savedWithRange3 === objAltered2)
   }
-
 
   "Can update values in an existing record" ignore {
     val obj = DynamoTestObject(UUID.randomUUID().toString, "some test value" + math.random)
@@ -174,7 +171,7 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
   }
 
   "Get returns None if record not found" ignore {
-    assert( Read[DynamoTestObject](UUID.randomUUID().toString) === None )
+    assert(Read[DynamoTestObject](UUID.randomUUID().toString) === None)
   }
 
   "Get returns when using a hash and range key" ignore {
@@ -190,14 +187,14 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
   }
 
   "Reading from non-existent table causes ThirdPartyException" ignore {
-    intercept[ThirdPartyException]{
+    intercept[ThirdPartyException] {
       Read[Broken](UUID.randomUUID().toString)
     }.getMessage must include("resource not found")
   }
 
   "Client survives 100 parallel errors" ignore {
-    (1 to 100).par.foreach{ i =>
-      intercept[ThirdPartyException]{
+    (1 to 100).par.foreach { i =>
+      intercept[ThirdPartyException] {
         Read[Broken](UUID.randomUUID().toString)
       }
     }
@@ -212,7 +209,7 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     Save(obj2)
 
     Query[DynamoTestWithRangeObject](id, "GT", List("0")).blockingStream must (contain(obj1) and contain(obj2))
-    Query[DynamoTestWithRangeObject](id, "GT", List("1")).blockingStream must (contain(obj2) and not(contain(obj1)) )
+    Query[DynamoTestWithRangeObject](id, "GT", List("1")).blockingStream must (contain(obj2) and not(contain(obj1)))
   }
 
   "Query works for more than 100 elements" ignore {
@@ -228,8 +225,8 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     val it = Await.result(Query[DynamoTestWithRangeObject](objs(0).id, "GT", List("0")).run(takeAll()), 5 seconds)
 
     it match {
-      case Done(list)=> list.size must be(N)
-      case x@_ => fail("Expected done but got " +x)
+      case Done(list) => list.size must be(N)
+      case x @ _ => fail("Expected done but got " + x)
     }
 
   }
@@ -241,21 +238,21 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
 
   "Query works with numeric range and to/from is inclusive" ignore {
     val id = UUID.randomUUID().toString
-    blocking.Save(DynamoTestWithNumericRangeObject(id, 100 , "value 100"))
-    blocking.Save(DynamoTestWithNumericRangeObject(id, 50 , "value 50"))
+    blocking.Save(DynamoTestWithNumericRangeObject(id, 100, "value 100"))
+    blocking.Save(DynamoTestWithNumericRangeObject(id, 50, "value 50"))
 
-    def query(from:Int, to:Int) = Query[DynamoTestWithNumericRangeObject](id, "BETWEEN", Seq(from, to)).blockingStream.toSeq
+    def query(from: Int, to: Int) = Query[DynamoTestWithNumericRangeObject](id, "BETWEEN", Seq(from, to)).blockingStream.toSeq
 
     // query works with numeric range
-    query( 0, 150).size must be(2)
-    query( 0,  55).size must be(1)
+    query(0, 150).size must be(2)
+    query(0, 55).size must be(1)
     query(60, 150).size must be(1)
 
     // query from is inclusive
-    query( 50, 51).size must be(1)
+    query(50, 51).size must be(1)
 
     // query to is inclusive
-    query( 0, 50).size must be(1)
+    query(0, 50).size must be(1)
   }
 
   "Query without range condition returns all elements matching the hash key" ignore {
@@ -268,7 +265,7 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     Save(obj)
     DeleteById[DynamoTestObject](obj.id)
 
-    Read[DynamoTestObject](obj.id) must be ('empty)
+    Read[DynamoTestObject](obj.id) must be('empty)
   }
 
   "Delete return deleted item" ignore {
@@ -278,7 +275,7 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     val out = DeleteById[DynamoTestObject](obj.id, retrieveBeforeDelete = true)
     out must be(Some(obj))
 
-    Read[DynamoTestObject](obj.id) must be ('empty)
+    Read[DynamoTestObject](obj.id) must be('empty)
 
     val out2 = DeleteById[DynamoTestObject](obj.id, retrieveBeforeDelete = true)
     out2 must be(None)
@@ -299,10 +296,10 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
       case e: Exception => fail(e)
     }
 
-    Read[DynamoTestObject](obj.id) must be (Some(obj))
+    Read[DynamoTestObject](obj.id) must be(Some(obj))
 
     DeleteById[DynamoTestObject](obj.id, expected = Map("someValue" -> someVal))
-    Read[DynamoTestObject](obj.id) must be ('empty)
+    Read[DynamoTestObject](obj.id) must be('empty)
   }
 
   "DeleteByRange" ignore {
@@ -311,7 +308,7 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
 
     val ff = nonblocking.DeleteByRange[DynamoTestWithRangeObject](id, range = "1") blockingExecute
 
-    Query[DynamoTestWithRangeObject](id, "EQ", List("1")).blockingStream must be ('empty)
+    Query[DynamoTestWithRangeObject](id, "EQ", List("1")).blockingStream must be('empty)
     Query[DynamoTestWithRangeObject](id, "EQ", List("2")).blockingStream must not be ('empty)
   }
 
@@ -323,7 +320,7 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
 
     out must be(Some(objs(0)))
 
-    Query[DynamoTestWithRangeObject](id, "EQ", List("1")).blockingStream must be ('empty)
+    Query[DynamoTestWithRangeObject](id, "EQ", List("1")).blockingStream must be('empty)
     Query[DynamoTestWithRangeObject](id, "EQ", List("2")).blockingStream must not be ('empty)
 
     val out2 = nonblocking.DeleteByRange[DynamoTestWithRangeObject](id, range = "1", retrieveBeforeDelete = true) blockingExecute
@@ -347,11 +344,11 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
       case e: Exception => fail(e)
     }
 
-    Query[DynamoTestWithRangeObject](id, "EQ", List("1")).blockingStream must be (Stream(objs(0)))
+    Query[DynamoTestWithRangeObject](id, "EQ", List("1")).blockingStream must be(Stream(objs(0)))
 
     nonblocking.DeleteByRange[DynamoTestWithRangeObject](id, range = "1", expected = Map("otherValue" -> "value 1")) blockingExecute
 
-    Query[DynamoTestWithRangeObject](id, "EQ", List("1")).blockingStream must be ('empty)
+    Query[DynamoTestWithRangeObject](id, "EQ", List("1")).blockingStream must be('empty)
   }
 
   "Scan works for more than 100 elements and batch delete works with range table" ignore {
@@ -359,17 +356,18 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     val objs = givenTestObjectsInDb(N)
     val id = objs(0).id
     val colConditions = Seq(
-      ColumnCondition("id", ScalarAttributeType.S, ComparisonOperator.EQ,id),
-      ColumnCondition("rangeValue", ScalarAttributeType.S, ComparisonOperator.GT,"0"))
+      ColumnCondition("id", ScalarAttributeType.S, ComparisonOperator.EQ, id),
+      ColumnCondition("rangeValue", ScalarAttributeType.S, ComparisonOperator.GT, "0")
+    )
 
     Scan[DynamoTestWithRangeObject](colConditions).blockingStream.size must be(N)
 
     Query[DynamoTestWithRangeObject](objs(0).id).blockingStream must not be ('empty)
 
-    val idAndRangePairs = for (obj <- objs) yield (obj.id,Some(obj.rangeValue))
+    val idAndRangePairs = for (obj <- objs) yield (obj.id, Some(obj.rangeValue))
     BatchDeleteById[DynamoTestWithRangeObject](idAndRangePairs) blockingExecute
 
-    Query[DynamoTestWithRangeObject](objs(0).id).blockingStream must be ('empty)
+    Query[DynamoTestWithRangeObject](objs(0).id).blockingStream must be('empty)
   }
 
   "Batch delete works with non-range table" ignore {
@@ -383,12 +381,12 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
 
     Query[DynamoTestObject](obj1.id).blockingStream must not be ('empty)
 
-    val idAndRangePairs = Seq((obj1.id,None), (obj2.id,None), (obj3.id,None))
+    val idAndRangePairs = Seq((obj1.id, None), (obj2.id, None), (obj3.id, None))
     BatchDeleteById[DynamoTestObject](idAndRangePairs) blockingExecute
 
-    Query[DynamoTestObject](obj1.id).blockingStream must be ('empty)
-    Query[DynamoTestObject](obj2.id).blockingStream must be ('empty)
-    Query[DynamoTestObject](obj3.id).blockingStream must be ('empty)
+    Query[DynamoTestObject](obj1.id).blockingStream must be('empty)
+    Query[DynamoTestObject](obj2.id).blockingStream must be('empty)
+    Query[DynamoTestObject](obj3.id).blockingStream must be('empty)
   }
 
   "Query on Index works" ignore {
@@ -399,16 +397,16 @@ class OperationsTest extends FreeSpec with MustMatchers with DynamoTestObjectSup
     Save(obj2)
 
     val colConditions = Seq(
-      ColumnCondition("rangeValue", ScalarAttributeType.N, ComparisonOperator.EQ,"2"),
-      ColumnCondition("someValue", ScalarAttributeType.S, ComparisonOperator.EQ,"value 2")
+      ColumnCondition("rangeValue", ScalarAttributeType.N, ComparisonOperator.EQ, "2"),
+      ColumnCondition("someValue", ScalarAttributeType.S, ComparisonOperator.EQ, "value 2")
     )
-    QueryIndex[DynamoTestWithGlobalSecondaryIndexObject]("TestSecondaryIndex",colConditions).blockingStream must (contain(obj2))
+    QueryIndex[DynamoTestWithGlobalSecondaryIndexObject]("TestSecondaryIndex", colConditions).blockingStream must (contain(obj2))
 
     val colConditions2 = Seq(
-      ColumnCondition("rangeValue", ScalarAttributeType.N, ComparisonOperator.EQ,"1"),
-      ColumnCondition("someValue", ScalarAttributeType.S, ComparisonOperator.EQ,"value 2")
+      ColumnCondition("rangeValue", ScalarAttributeType.N, ComparisonOperator.EQ, "1"),
+      ColumnCondition("someValue", ScalarAttributeType.S, ComparisonOperator.EQ, "value 2")
     )
-    QueryIndex[DynamoTestWithGlobalSecondaryIndexObject]("TestSecondaryIndex",colConditions2).blockingStream must be ('empty)
+    QueryIndex[DynamoTestWithGlobalSecondaryIndexObject]("TestSecondaryIndex", colConditions2).blockingStream must be('empty)
   }
 
   private def assertCanSaveGetObject() {

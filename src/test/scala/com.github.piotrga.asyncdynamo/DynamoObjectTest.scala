@@ -24,11 +24,11 @@ import org.scalatest.MustMatchers
 import org.scalatest.FreeSpec
 
 // This project
-import nonblocking.{Read, Save, CreateTable, TableExists}
+import nonblocking.{ Read, Save, CreateTable, TableExists }
 
-class DynamoObjectTest extends FreeSpec with MustMatchers with DynamoSupport{
+class DynamoObjectTest extends FreeSpec with MustMatchers with DynamoSupport {
 
-  case class Person(id :String, name: String, email: String)
+  case class Person(id: String, name: String, email: String)
   implicit val personDO = DynamoObject.of3(Person)
 
   "Generates DO for basic case class" ignore {
@@ -43,9 +43,9 @@ class DynamoObjectTest extends FreeSpec with MustMatchers with DynamoSupport{
 
   "Save/Read of dynamic DynamoObject" ignore {
     val tst = Person("12312321", "Piotr", "piotrga@gmail.com")
-    if (! TableExists[Person]()) CreateTable[Person](5,5).blockingExecute(dynamo, 1 minute)
+    if (!TableExists[Person]()) CreateTable[Person](5, 5).blockingExecute(dynamo, 1 minute)
 
-    val saved : Option[Person] = Save(tst) andThen Read[Person](tst.id)
+    val saved: Option[Person] = Save(tst) andThen Read[Person](tst.id)
     saved.get must be(tst)
   }
 

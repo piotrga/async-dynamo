@@ -21,7 +21,7 @@ object Dependencies {
 
   object V {
     // Java
-    val awsSdk      = "1.7.5"
+    val awsSdk      = "1.9.40"
     // Scala
     val akkaActor   = "2.4.12"
     // Test
@@ -31,11 +31,11 @@ object Dependencies {
 
   object Libraries {
     // Java
-    val awsSdk      = "com.amazonaws"              %  "aws-java-sdk"         % V.awsSdk
+    val awsSdk      = "com.amazonaws"              %  "aws-java-sdk-dynamodb"         % V.awsSdk
     // Scala
-    val akkaActor   = "com.typesafe.akka"          %% "akka-actor"           % V.akkaActor
+    val akkaActor   = "com.typesafe.akka"          %% "akka-actor"                    % V.akkaActor
     // Test
-    val scalatest   = "org.scalatest"              %% "scalatest"            % V.scalatest   % "test"
-    val log4j       = "log4j"                      %  "log4j"                % V.log4j       % "test"
+    val scalatest   = "org.scalatest"              %% "scalatest"                     % V.scalatest   % "test"
+    val log4j       = "log4j"                      %  "log4j"                         % V.log4j       % "test"
   }
 }

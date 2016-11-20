@@ -22,8 +22,8 @@ object BuildSettings {
   lazy val basicSettings = Seq[Setting[_]](
     organization  := "com.github.piotrga",
     description   := "Asynchronous Scala client for Amazon DynamoDB",
-    scalaVersion  := "2.11.7",
-    crossScalaVersions := Seq("2.10.6", "2.11.7"),
+    scalaVersion  := "2.11.8",
+    crossScalaVersions := Seq("2.11.8", "2.10.6"),
     scalacOptions := Seq("-deprecation", "-feature", "-encoding", "utf8"),
     resolvers     ++= Dependencies.resolutionRepos
   )
