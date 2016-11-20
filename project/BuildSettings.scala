@@ -47,7 +47,6 @@ object BuildSettings {
       commitReleaseVersion,
       tagRelease,
       publishArtifacts,
-      releaseStepTask(bintrayRelease in `sbt-release`),
       setNextVersion,
       commitNextVersion,
       pushChanges
