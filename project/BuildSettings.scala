@@ -15,8 +15,13 @@
  */
 import sbt.Keys._
 import sbt._
+import sbtrelease.ReleasePlugin.autoImport._
+import bintray.BintrayKeys._
+import ReleaseTransformations._
 
 object BuildSettings {
+
+  lazy val `sbt-release` = project in file(".")
 
   // Basic settings for our app
   lazy val basicSettings = Seq[Setting[_]](
@@ -25,13 +30,29 @@ object BuildSettings {
     scalaVersion  := "2.11.8",
     crossScalaVersions := Seq("2.11.8", "2.10.6"),
     scalacOptions := Seq("-deprecation", "-feature", "-encoding", "utf8"),
-    resolvers     ++= Dependencies.resolutionRepos
+    resolvers     ++= Dependencies.resolutionRepos,
+    releaseCommitMessage := s"Setting version to ${(version in ThisBuild).value} [skip ci]"
   )
 
   // Publish settings
   lazy val publishSettings = Seq[Setting[_]](
     publishMavenStyle := true,
-    licenses  += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html"))
+    licenses  += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html")),
+    bintrayReleaseOnPublish in ThisBuild := false,
+    releaseProcess := Seq[ReleaseStep](
+      checkSnapshotDependencies,
+      inquireVersions,
+      runClean,
+      runTest,
+      setReleaseVersion,
+      commitReleaseVersion,
+      tagRelease,
+      publishArtifacts,
+      releaseStepTask(bintrayRelease in `sbt-release`),
+      setNextVersion,
+      commitNextVersion,
+      pushChanges
+    )
   )
 
   lazy val buildSettings = basicSettings ++ publishSettings
