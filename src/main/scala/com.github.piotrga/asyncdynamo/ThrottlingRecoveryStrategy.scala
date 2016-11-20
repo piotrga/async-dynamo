@@ -24,39 +24,38 @@ import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughputExceededExce
 // Akka
 import akka.actor.ActorSystem
 
-trait ThrottlingRecoveryStrategy{
-  def amazonMaxErrorRetry : Int
-  def onExecute[T](f: => T, operation: PendingOperation[T], system : ActorSystem) : T
+trait ThrottlingRecoveryStrategy {
+  def amazonMaxErrorRetry: Int
+  def onExecute[T](f: => T, operation: PendingOperation[T], system: ActorSystem): T
 }
 
-object AmazonThrottlingRecoveryStrategy{
-  def forTimeout(timeout :FiniteDuration) = AmazonThrottlingRecoveryStrategy((math.log(timeout.toMillis / 50 +1)/math.log(2)).toInt)
+object AmazonThrottlingRecoveryStrategy {
+  def forTimeout(timeout: FiniteDuration) = AmazonThrottlingRecoveryStrategy((math.log(timeout.toMillis / 50 + 1) / math.log(2)).toInt)
 }
 
-case class AmazonThrottlingRecoveryStrategy(maxRetries: Int) extends ThrottlingRecoveryStrategy{
+case class AmazonThrottlingRecoveryStrategy(maxRetries: Int) extends ThrottlingRecoveryStrategy {
   val amazonMaxErrorRetry = maxRetries
-  def onExecute[T](f: => T, operation: PendingOperation[T], system : ActorSystem) : T = f
+  def onExecute[T](f: => T, operation: PendingOperation[T], system: ActorSystem): T = f
 }
 
-case class ExpotentialBackoffThrottlingRecoveryStrategy(maxRetries: Int, backoffBase: FiniteDuration) extends  ThrottlingRecoveryStrategy{
+case class ExpotentialBackoffThrottlingRecoveryStrategy(maxRetries: Int, backoffBase: FiniteDuration) extends ThrottlingRecoveryStrategy {
   val amazonMaxErrorRetry = 0
   lazy val BASE = backoffBase.toMillis
 
-  def onExecute[T](evaluate: => T, operation: PendingOperation[T], system : ActorSystem) : T = {
+  def onExecute[T](evaluate: => T, operation: PendingOperation[T], system: ActorSystem): T = {
 
-    def Try(attempt: Int) : T = {
+    def Try(attempt: Int): T = {
       try evaluate
-      catch{
+      catch {
         case ex: ProvisionedThroughputExceededException =>
           val pauseMillis = BASE * math.pow(2, attempt).toInt
           system.eventStream publish ProvisionedThroughputExceeded(operation.operation, "Retrying in [%d] millis. Attempt [%d]" format (pauseMillis, attempt))
           Thread.sleep(pauseMillis)
-          if (attempt < maxRetries) Try(attempt+1) else evaluate
+          if (attempt < maxRetries) Try(attempt + 1) else evaluate
       }
     }
 
     if (maxRetries > 0) Try(attempt = 1) else evaluate
-
 
   }
 }

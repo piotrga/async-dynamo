@@ -13,34 +13,44 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
+import sbt.Keys._
 import sbt._
-import Keys._
+import sbtrelease.ReleasePlugin.autoImport._
+import bintray.BintrayKeys._
+import ReleaseTransformations._
 
 object BuildSettings {
+
+  lazy val `sbt-release` = project in file(".")
 
   // Basic settings for our app
   lazy val basicSettings = Seq[Setting[_]](
     organization  := "com.github.piotrga",
-    version       := "2.0.0",
     description   := "Asynchronous Scala client for Amazon DynamoDB",
-    scalaVersion  := "2.10.1",
-    //crossScalaVersions := Seq("2.10.1", "2.11.4"),
+    scalaVersion  := "2.11.8",
     scalacOptions := Seq("-deprecation", "-feature", "-encoding", "utf8"),
-    resolvers     ++= Dependencies.resolutionRepos
+    resolvers     ++= Dependencies.resolutionRepos,
+    releaseCommitMessage := s"Setting version to ${(version in ThisBuild).value} [skip ci]"
   )
 
   // Publish settings
-  // TODO: update with ivy credentials etc when we start using Nexus
   lazy val publishSettings = Seq[Setting[_]](
-    // Enables publishing to maven repo
     publishMavenStyle := true,
-
-    publishTo <<= version { version =>
-      val basePath = "target/repo/%s".format {
-        if (version.trim.endsWith("SNAPSHOT")) "snapshots/" else "releases/"
-      }
-      Some(Resolver.file("Local Maven repository", file(basePath)) transactional())
-    }
+    licenses  += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html")),
+    bintrayReleaseOnPublish in ThisBuild := false,
+    releaseProcess := Seq[ReleaseStep](
+      checkSnapshotDependencies,
+      inquireVersions,
+      runClean,
+      runTest,
+      setReleaseVersion,
+      commitReleaseVersion,
+      tagRelease,
+      publishArtifacts,
+      setNextVersion,
+      commitNextVersion,
+      pushChanges
+    )
   )
 
   lazy val buildSettings = basicSettings ++ publishSettings

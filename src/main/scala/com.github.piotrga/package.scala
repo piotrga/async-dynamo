@@ -32,8 +32,8 @@ package object asyncdynamo {
     private[asyncdynamo] def execute(db: AmazonDynamoDB, tablePrefix: String) = f(db, tablePrefix)
   }
 
-  implicit def toResult[T](op : DbOperation[T])(implicit dynamo: ActorRef, timeout: Timeout)  : T = op.blockingExecute
-  implicit def toFuture[T](op : DbOperation[T])(implicit dynamo: ActorRef, timeout: Timeout)  : Future[T] = op.executeOn(dynamo)(timeout)
+  implicit def toResult[T](op: DbOperation[T])(implicit dynamo: ActorRef, timeout: Timeout): T = op.blockingExecute
+  implicit def toFuture[T](op: DbOperation[T])(implicit dynamo: ActorRef, timeout: Timeout): Future[T] = op.executeOn(dynamo)(timeout)
 
 }
 

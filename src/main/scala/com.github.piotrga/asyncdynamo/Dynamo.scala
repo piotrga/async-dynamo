@@ -29,7 +29,7 @@ import com.amazonaws.services.dynamodbv2.model._
 
 // Akka
 import akka.actor._
-import akka.routing.SmallestMailboxRouter
+import akka.routing.SmallestMailboxPool
 import com.typesafe.config.ConfigFactory
 import akka.actor.Status.Failure
 
@@ -58,8 +58,8 @@ class Dynamo(config: DynamoConfig) extends Actor {
 
   override def receive = {
     case pending @ PendingOperation(op, deadline) if (deadline.hasTimeLeft()) =>
-      try{
-        val (result, duration) = time(config.throttlingRecoveryStrategy.onExecute( op.safeExecute(db, config.tablePrefix), pending, context.system ))
+      try {
+        val (result, duration) = time(config.throttlingRecoveryStrategy.onExecute(op.safeExecute(db, config.tablePrefix), pending, context.system))
         sender ! result
         context.system.eventStream publish OperationExecuted(duration, op)
       } catch {
@@ -79,7 +79,7 @@ class Dynamo(config: DynamoConfig) extends Actor {
     sender ! Failure(new ThirdPartyException("AmazonDB Error: [%s] while executing [%s]" format (reason.getMessage, message), reason))
   }
 
-  private def time[T](f : => T) :( T, FiniteDuration) = {
+  private def time[T](f: => T): (T, FiniteDuration) = {
     val start = System.currentTimeMillis()
     val res = f
     val duration = System.currentTimeMillis() - start
@@ -91,12 +91,12 @@ class Dynamo(config: DynamoConfig) extends Actor {
 object Dynamo {
   def apply(config: DynamoConfig, connectionCount: Int): ActorRef = apply(new Dynamo(config), connectionCount)
 
-  def apply(dynamo: => Dynamo, connectionCount: Int) : ActorRef = {
-    val system = ActorSystem("Dynamo", ConfigFactory.load().getConfig("Dynamo") )
+  def apply(dynamo: => Dynamo, connectionCount: Int): ActorRef = {
+    val system = ActorSystem("Dynamo", ConfigFactory.load().getConfig("Dynamo"))
 
     system.actorOf(Props(new Actor {
       val router = context.actorOf(Props(dynamo)
-        .withRouter(SmallestMailboxRouter(connectionCount))
+        .withRouter(SmallestMailboxPool(connectionCount))
         .withDispatcher("dynamo-connection-dispatcher"), "DynamoConnection")
 
       def receive = {
@@ -105,8 +105,8 @@ object Dynamo {
         case msg: PendingOperation[_] =>
           router forward msg
         case 'stop =>
-          system.shutdown()
-        case ('addListener, listener : ActorRef) =>
+          system.terminate()
+        case ('addListener, listener: ActorRef) =>
           system.eventStream.subscribe(listener, classOf[DynamoEvent])
         case _ => () // ignore other messages
       }
@@ -115,33 +115,30 @@ object Dynamo {
 }
 
 case class DynamoConfig(
-                         accessKey : String,
-                         secret: String,
-                         tablePrefix: String,
-                         endpointUrl: String,
-                         timeout: FiniteDuration = 10 seconds,
-                         throttlingRecoveryStrategy : ThrottlingRecoveryStrategy = AmazonThrottlingRecoveryStrategy.forTimeout(10 seconds)
-                         )
+  accessKey: String,
+  secret: String,
+  tablePrefix: String,
+  endpointUrl: String,
+  timeout: FiniteDuration = 10 seconds,
+  throttlingRecoveryStrategy: ThrottlingRecoveryStrategy = AmazonThrottlingRecoveryStrategy.forTimeout(10 seconds)
+)
 
-
-
-class ThirdPartyException(msg: String, cause:Throwable=null) extends RuntimeException(msg, cause)
+class ThirdPartyException(msg: String, cause: Throwable = null) extends RuntimeException(msg, cause)
 
 trait DynamoEvent
 
-case class DynamoRequestExecuted(operation:Operation, readUnits: Option[Double] = None , writeUnits: Option[Double] = None, time : Long = System.currentTimeMillis(), duration : Long) extends DynamoEvent
-case class OperationExecuted(duration:FiniteDuration, operation: DbOperation[_]) extends DynamoEvent
+case class DynamoRequestExecuted(operation: Operation, readUnits: Option[Double] = None, writeUnits: Option[Double] = None, time: Long = System.currentTimeMillis(), duration: Long) extends DynamoEvent
+case class OperationExecuted(duration: FiniteDuration, operation: DbOperation[_]) extends DynamoEvent
 case class OperationFailed(operation: DbOperation[_], reason: Throwable) extends DynamoEvent
-case class ProvisionedThroughputExceeded(operation: DbOperation[_], msg:String) extends DynamoEvent
+case class ProvisionedThroughputExceeded(operation: DbOperation[_], msg: String) extends DynamoEvent
 case class OperationOverdue(operation: DbOperation[_]) extends DynamoEvent
 
-object Operation{
+object Operation {
   sealed trait Type
   case object Read extends Type
   case object Write extends Type
   case object Admin extends Type
 }
 
-case class Operation(tableName: String, operationType : Type, name : String)
-
+case class Operation(tableName: String, operationType: Type, name: String)
 

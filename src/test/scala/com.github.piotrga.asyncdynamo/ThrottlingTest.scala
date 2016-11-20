@@ -18,41 +18,43 @@ package com.github.piotrga.asyncdynamo
 // Java
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.{TimeUnit, CountDownLatch}
+import java.util.concurrent.{ TimeUnit, CountDownLatch }
 
 // Scala
-import util.{Success, Failure}
+import util.{ Success, Failure }
 import concurrent.ExecutionContext.Implicits.global
 import language.postfixOps
 
 // Akka
 import akka.util.Timeout
-import akka.actor.{ActorRef, Actor, Props, ActorSystem}
+import akka.actor.{ ActorRef, Actor, Props, ActorSystem }
 
 // This project
 import nonblocking.Query
 import DynamoTestDataObjects.DynamoTestWithRangeObject
 
-object ThrottlingTest extends  App{
-  def main(args : Seq[String]){
+object ThrottlingTest extends App {
+  def main(args: Seq[String]) {
     import scala.concurrent.duration._
-    implicit val dynamo : ActorRef = Dynamo(
+    implicit val dynamo: ActorRef = Dynamo(
       DynamoConfig(
         System.getProperty("amazon.accessKey"),
         System.getProperty("amazon.secret"),
         tablePrefix = "devng_",
-        endpointUrl = System.getProperty("dynamo.url", "https://dynamodb.eu-west-1.amazonaws.com" ),
+        endpointUrl = System.getProperty("dynamo.url", "https://dynamodb.eu-west-1.amazonaws.com"),
         throttlingRecoveryStrategy = AmazonThrottlingRecoveryStrategy(4)
-        //      throttlingRecoveryStrategy = ExpotentialBackoffThrottlingRecoveryStrategy(maxRetries = 3, backoffBase = 650 millis)
-      ), connectionCount = 30)
+      //      throttlingRecoveryStrategy = ExpotentialBackoffThrottlingRecoveryStrategy(maxRetries = 3, backoffBase = 650 millis)
+      ), connectionCount = 30
+    )
     implicit val timeout = Timeout(33 seconds)
     implicit val sys = ActorSystem("test")
 
-    dynamo ! ('addListener, sys.actorOf(Props( new Actor {
+    dynamo ! ('addListener, sys.actorOf(Props(new Actor {
       def receive = {
         case msg: ProvisionedThroughputExceeded =>
           context.system.log.warning(msg.toString())
-      }})))
+      }
+    })))
 
     //  dynamo ! ('addListener, sys.actorOf(Props(new Actor{
     //    protected def receive = {
@@ -66,34 +68,31 @@ object ThrottlingTest extends  App{
     val N = 12000
     val id = UUID.randomUUID().toString
     createTestObjectsInDb(id, N)
-    assert (Query[DynamoTestWithRangeObject](id, "GT", List("0")).blockingStream.size == N )
+    assert(Query[DynamoTestWithRangeObject](id, "GT", List("0")).blockingStream.size == N)
 
-
-    def createTestObjectsInDb(id : String, n: Int)  {
+    def createTestObjectsInDb(id: String, n: Int) {
 
       val finished = new CountDownLatch(n)
       val evener = (30 seconds) / n
       (1 to n) map {
         i =>
-          nonblocking.Save(DynamoTestWithRangeObject(id, i.toString , "value "+i)).executeOn(dynamo)(10 seconds)
-            .andThen{
+          nonblocking.Save(DynamoTestWithRangeObject(id, i.toString, "value " + i)).executeOn(dynamo)(10 seconds)
+            .andThen {
               case Success(_) => successCount.incrementAndGet()
               case Failure(_) => failureCount.incrementAndGet()
             }
-            .onComplete{_ =>
-            finished.countDown()
-            if (finished.getCount % 50 == 0)
-              println("Success count = [%d], Failure count = [%d]"  format (successCount.get(), failureCount.get))
-          }
+            .onComplete { _ =>
+              finished.countDown()
+              if (finished.getCount % 50 == 0)
+                println("Success count = [%d], Failure count = [%d]" format (successCount.get(), failureCount.get))
+            }
           Thread.sleep(evener toMillis)
       }
 
-
-      finished.await(n* 10,  TimeUnit.SECONDS)
-      println("FINAL: Success count = [%d], Failure count = [%d]"  format (successCount.get(), failureCount.get))
+      finished.await(n * 10, TimeUnit.SECONDS)
+      println("FINAL: Success count = [%d], Failure count = [%d]" format (successCount.get(), failureCount.get))
 
     }
-
 
   }
 
