@@ -26,17 +26,17 @@ import akka.util.Timeout
 import nonblocking.ColumnCondition
 
 package object blocking {
-  def Read[T](id: String, range: Option[String] = None)(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.Read(id,range).blockingExecute
+  def Read[T](id: String, range: Option[String] = None)(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.Read(id, range).blockingExecute
 
-  def Scan[T](conditions: Seq[ColumnCondition], exclusiveStartKey: Option[Map[String,AttributeValue]])(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.Scan(conditions, exclusiveStartKey).blockingExecute
+  def Scan[T](conditions: Seq[ColumnCondition], exclusiveStartKey: Option[Map[String, AttributeValue]])(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.Scan(conditions, exclusiveStartKey).blockingExecute
 
   def Save[T](o: T, overwriteExisting: Boolean = true)(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.Save(o, overwriteExisting).blockingExecute
 
   def Update[T](id: String, o: T, range: Option[String] = None)(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.Update(id, o, range).blockingExecute
 
-  def DeleteById[T](id: String, expected: Map[String,String] = Map.empty, retrieveBeforeDelete: Boolean = false)(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.DeleteById(id, expected, retrieveBeforeDelete).blockingExecute
+  def DeleteById[T](id: String, expected: Map[String, String] = Map.empty, retrieveBeforeDelete: Boolean = false)(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.DeleteById(id, expected, retrieveBeforeDelete).blockingExecute
 
-  def DeleteByRange[T](id: String, range: Any, expected: Map[String,String] = Map.empty, retrieveBeforeDelete: Boolean = false)(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.DeleteByRange(id, range, expected, retrieveBeforeDelete).blockingExecute
+  def DeleteByRange[T](id: String, range: Any, expected: Map[String, String] = Map.empty, retrieveBeforeDelete: Boolean = false)(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.DeleteByRange(id, range, expected, retrieveBeforeDelete).blockingExecute
 
   def DeleteAll[T]()(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.DeleteAll().blockingExecute
 
@@ -46,27 +46,27 @@ package object blocking {
 
   def IsTableActive[T]()(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.IsTableActive[T]().blockingExecute
 
-  def CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.CreateTable[T](readThroughput, writeThrougput).blockingExecute
+  def CreateTable[T](readThroughput: Long = 5, writeThrougput: Long = 5)(implicit dynamo: ActorRef, timeout: Timeout, dyn: DynamoObject[T]) = nonblocking.CreateTable[T](readThroughput, writeThrougput).blockingExecute
 }
 
 package object functional {
   /**
    * Useful for paging, ie:
    * {{{
-  def execute(implicit cassandra: ActorRef, timeout: FiniteDuration) : Stream[(String,String)]= {
-    Streams.unfold(""){
-      (marker : String) =>
-        val res = nonblocking.GetSlice(columnFamilyId, rowId, marker, "", batchSize).executeOn(cassandra).get.toSeq
-        val elements = if (res.headOption.isDefined && marker == res.head._1)
-          res.tail
-        else res
-
-        val newMarker = elements.lastOption.map(_._1)
-        (newMarker, elements)
-
-    }.flatten
-  }
-  }}}
+   * def execute(implicit cassandra: ActorRef, timeout: FiniteDuration) : Stream[(String,String)]= {
+   * Streams.unfold(""){
+   * (marker : String) =>
+   * val res = nonblocking.GetSlice(columnFamilyId, rowId, marker, "", batchSize).executeOn(cassandra).get.toSeq
+   * val elements = if (res.headOption.isDefined && marker == res.head._1)
+   * res.tail
+   * else res
+   *
+   * val newMarker = elements.lastOption.map(_._1)
+   * (newMarker, elements)
+   *
+   * }.flatten
+   * }
+   * }}}
    * @param initial initial state, ie. for paging it could be empty marker or number zero for first page.
    * @param f transforms some state to the next state and result, ie. in batching for a given marker(state) it produces collection of elements(batch) and next marker(new state)
    * @tparam STATE type of the state, ie. for paging it could be a String.
@@ -80,6 +80,5 @@ package object functional {
       case (None, list) => Stream(list)
     })
   }
-
 
 }

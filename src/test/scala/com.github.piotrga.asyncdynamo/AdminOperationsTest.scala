@@ -25,36 +25,34 @@ import java.util.concurrent.TimeoutException
 
 // ScalaTest
 import org.scalatest.FreeSpec
-import org.scalatest.matchers.MustMatchers
+import org.scalatest.MustMatchers
 
 // This project
 import blocking._
 
-class AdminOperationsTest extends FreeSpec with MustMatchers with DynamoSupport{
-  case class AdminTest(id:String, value: String)
+class AdminOperationsTest extends FreeSpec with MustMatchers with DynamoSupport {
+  case class AdminTest(id: String, value: String)
   implicit val at1DO = DynamoObject.of2(AdminTest)
 
-
-
   @tailrec
-  final def eventually(times:Int, millis:Long)(cond: => Boolean){
-    if(! cond ) {
-      if (times<0) throw new TimeoutException()
+  final def eventually(times: Int, millis: Long)(cond: => Boolean) {
+    if (!cond) {
+      if (times < 0) throw new TimeoutException()
       Thread.sleep(millis)
-      eventually(times-1, millis)(cond)
+      eventually(times - 1, millis)(cond)
     }
   }
 
-  val eventually : ( => Boolean) => Unit = eventually(120, 1000)
+  val eventually: (=> Boolean) => Unit = eventually(120, 1000)
 
-  "Combination of create/delete table operations" in {
-    try DeleteTable[AdminTest] catch {case _: Throwable => ()} //ignore if it doesn't exist
+  "Combination of create/delete table operations" ignore {
+    try DeleteTable[AdminTest] catch { case _: Throwable => () } //ignore if it doesn't exist
     eventually(!TableExists[AdminTest]())
 
-    nonblocking.CreateTable[AdminTest](5,5).blockingExecute(dynamo, 1 minute)
-    TableExists[AdminTest]() must be (true)
-    IsTableActive[AdminTest]() must be (true)
+    nonblocking.CreateTable[AdminTest](5, 5).blockingExecute(dynamo, 1 minute)
+    TableExists[AdminTest]() must be(true)
+    IsTableActive[AdminTest]() must be(true)
     DeleteTable[AdminTest]()
-    eventually( !TableExists[AdminTest]() )
+    eventually(!TableExists[AdminTest]())
   }
 }

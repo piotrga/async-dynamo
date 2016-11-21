@@ -18,8 +18,8 @@ package nonblocking
 
 // Scala
 import concurrent.duration._
-import concurrent.{Promise, Future, Await}
-import util.{Failure, Success}
+import concurrent.{ Promise, Future, Await }
+import util.{ Failure, Success }
 import collection.JavaConversions._
 import language.postfixOps
 
@@ -28,11 +28,11 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
 import com.amazonaws.services.dynamodbv2.model._
 
 // Akka
-import akka.actor.{ActorSystem, ActorRef}
+import akka.actor.{ ActorSystem, ActorRef }
 import akka.util.Timeout
 
-case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
-  def execute(db: AmazonDynamoDB, tablePrefix:String) {
+case class CreateTable[T](readThroughput: Long = 5, writeThrougput: Long = 5)(implicit dyn: DynamoObject[T]) extends DbOperation[Unit] {
+  def execute(db: AmazonDynamoDB, tablePrefix: String) {
 
     val keySchemas: List[KeySchemaElement] = dyn.rangeSchema match {
       case Some((range)) =>
@@ -49,7 +49,7 @@ case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(imp
     }
 
     val localSecondaryIndexesAttribs = (for (secondaryIndex <- dyn.localSecondaryIndexes) yield secondaryIndex.getAllAttribs()).flatten.toList
-    val globalSecondaryIndexesAttribs= (for (secondaryIndex <- dyn.globalSecondaryIndexes) yield secondaryIndex.getAllAttribs()).flatten.toList
+    val globalSecondaryIndexesAttribs = (for (secondaryIndex <- dyn.globalSecondaryIndexes) yield secondaryIndex.getAllAttribs()).flatten.toList
 
     val allAttribs = (keyAttribs ::: localSecondaryIndexesAttribs ::: globalSecondaryIndexesAttribs).distinct
 
@@ -59,13 +59,12 @@ case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(imp
 
     val request = new CreateTableRequest()
       .withTableName(dyn.table(tablePrefix))
-      .withKeySchema( seqAsJavaList(keySchemas) )
+      .withKeySchema(seqAsJavaList(keySchemas))
       .withProvisionedThroughput(provisionedThroughput)
       .withAttributeDefinitions(allAttribs)
 
     //LocalSecondaryIndexes
-    val localSecondaryIndexes = for (secondaryIndex <- dyn.localSecondaryIndexes)
-    yield {
+    val localSecondaryIndexes = for (secondaryIndex <- dyn.localSecondaryIndexes) yield {
       new com.amazonaws.services.dynamodbv2.model.LocalSecondaryIndex()
         .withIndexName(secondaryIndex.name)
         .withKeySchema(secondaryIndex.createKeySchemaElement)
@@ -73,11 +72,10 @@ case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(imp
     }
 
     if (localSecondaryIndexes.size > 0)
-      request.setLocalSecondaryIndexes( localSecondaryIndexes )
+      request.setLocalSecondaryIndexes(localSecondaryIndexes)
 
     //GlobalSecondaryIndexes
-    val globalSecondaryIndexes = for (secondaryIndex <- dyn.globalSecondaryIndexes)
-    yield {
+    val globalSecondaryIndexes = for (secondaryIndex <- dyn.globalSecondaryIndexes) yield {
       val provisionedThroughput = new ProvisionedThroughput()
         .withReadCapacityUnits(secondaryIndex.readThroughput)
         .withWriteCapacityUnits(secondaryIndex.writeThrougput)
@@ -90,7 +88,7 @@ case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(imp
     }
 
     if (globalSecondaryIndexes.size > 0)
-      request.setGlobalSecondaryIndexes( globalSecondaryIndexes )
+      request.setGlobalSecondaryIndexes(globalSecondaryIndexes)
 
     db.createTable(request)
   }
@@ -102,35 +100,34 @@ case class CreateTable[T](readThroughput: Long =5, writeThrougput: Long = 5)(imp
   }
 }
 
-case class TableExists[T](implicit dyn: DynamoObject[T]) extends DbOperation[Boolean]{
+case class TableExists[T](implicit dyn: DynamoObject[T]) extends DbOperation[Boolean] {
   private[asyncdynamo] def execute(db: AmazonDynamoDB, tablePrefix: String) = {
     val tableName = dyn.table(tablePrefix)
     db.listTables().getTableNames.contains(tableName)
   }
 }
 
-case class IsTableActive[T](implicit dyn: DynamoObject[T]) extends DbOperation[Boolean]{
+case class IsTableActive[T](implicit dyn: DynamoObject[T]) extends DbOperation[Boolean] {
   private[asyncdynamo] def execute(db: AmazonDynamoDB, tablePrefix: String) = {
     val tableName = dyn.table(tablePrefix)
-    if (db.listTables().getTableNames.contains(tableName)){
+    if (db.listTables().getTableNames.contains(tableName)) {
       val status = db.describeTable(new DescribeTableRequest().withTableName(tableName)).getTable.getTableStatus.toUpperCase()
       status == "ACTIVE"
-    }else false
+    } else false
   }
 
-
-  def blockUntilTrue(timeout:FiniteDuration)(implicit dynamo: ActorRef): Future[Unit] = {
+  def blockUntilTrue(timeout: FiniteDuration)(implicit dynamo: ActorRef): Future[Unit] = {
     val start = System.currentTimeMillis()
     implicit val sys = ActorSystem("blockUntilTrue") //TODO: this is not very resource-efficient (Peter G. 23/10/2012)
     implicit val exec = sys.dispatcher
     val promise = Promise[Unit]()
 
     def schedule() {
-      sys.scheduler.scheduleOnce(100 milliseconds){
+      sys.scheduler.scheduleOnce(100 milliseconds) {
         if (System.currentTimeMillis() - start < timeout.toMillis) {
-          this.executeOn(dynamo)(timeout).onComplete{
+          this.executeOn(dynamo)(timeout).onComplete {
             case Success(false) => schedule()
-            case Success(true)  => promise.tryComplete(Success(()))
+            case Success(true) => promise.tryComplete(Success(()))
             case Failure(e) => promise.failure(e)
           }
         }
@@ -139,12 +136,12 @@ case class IsTableActive[T](implicit dyn: DynamoObject[T]) extends DbOperation[B
 
     schedule()
 
-    promise.future.andThen{case _ => sys.shutdown()}
+    promise.future.andThen { case _ => sys.terminate() }
   }
 
 }
 
-case class DeleteTable[T] (implicit dyn:DynamoObject[T]) extends DbOperation[Unit]{
+case class DeleteTable[T](implicit dyn: DynamoObject[T]) extends DbOperation[Unit] {
   private[asyncdynamo] def execute(db: AmazonDynamoDB, tablePrefix: String) {
     db.deleteTable(new DeleteTableRequest().withTableName(dyn.table(tablePrefix)))
   }
